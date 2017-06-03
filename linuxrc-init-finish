@@ -1,0 +1,49 @@
+#!/bin/sh
+
+. /bin/linuxrc-config
+
+parsecmdline
+
+if [ -n "$gv_splash_theme" ]; then
+	splash_setup
+fi
+
+# try resume, first userspace, then kernelspace
+
+# check for crypt_resume par, noresume par and kernel suspend support
+if [ -n "${resume_dev}" -a $resume_mode = 1 ]; then
+
+	if [ -x /sbin/resume ]; then
+		#echo "Trying to resume with userspace tools from ${resume_dev}"
+
+		if [ $gv_active_splashutil = 1 -a $gv_splash_silent = 0 ] ; then
+			/sbin/resume -P 'splash = y' ${resume_dev}
+		else
+			/sbin/resume -P 'splash = n' ${resume_dev}
+		fi
+	fi
+
+	if [ -f /sys/power/resume ]; then
+		#echo "Trying to resume with kernel-space tools from ${resume_dev}"
+		devnumber=$(getdevnumber ${resume_dev})
+		echo "$devnumber" > /sys/power/resume
+	fi
+fi
+
+if [ $recovery_mode = 1 ] ; then
+	splash_verbose
+	/bin/sh
+	splash_silent
+fi
+
+mount -r $root /mnt
+umount_all
+mount -t devtmpfs none /mnt/dev
+mount -t proc none /mnt/proc
+mount -t sysfs none /mnt/sys
+exec switch_root /mnt /sbin/init ${CMDLINE}
+
+# switch_root failed, failsafe mode
+mount_all
+splash_verbose
+exec /bin/sh

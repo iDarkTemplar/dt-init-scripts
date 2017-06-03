@@ -1,0 +1,44 @@
+#!/bin/sh
+
+. /bin/linuxrc-config
+
+# script start
+mount_all
+
+parsecmdline
+
+# setup splash, verbose first
+if [ -n "$gv_splash_theme" ] ; then
+	splash_setup
+fi
+
+# no longer print kernel messages to console
+echo 0 > /proc/sys/kernel/printk
+
+if [ -e /proc/sys/kernel/hotplug ] ; then
+	echo /sbin/mdev > /proc/sys/kernel/hotplug
+fi
+
+splash_verbose
+
+. /bin/linuxrc-decrypt
+
+. /bin/linuxrc-readmtab /etc/dt-tools/mtab.conf
+
+mounted_everything=true
+
+for i in $(seq 0 $(expr ${mtab_items_count} - 1)) ; do
+	if [ ! -e "/dev/mapper/$(eval echo \$mtab_names$i)" ] ; then
+		mounted_everything=false
+	fi
+done
+
+if [ "$mounted_everything" = false ] ; then
+	# decrypt failed, failsafe mode
+	echo Decryption failed
+	exec /bin/sh
+fi
+
+splash_silent
+
+exec /bin/linuxrc-init-finish

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [ -f /etc/dt-tools/splash-res.conf -a -f /etc/dt-tools/splash-theme.conf ] ; then
+	BOOTFILE=initramfs-bootsplash-$(cat /etc/dt-tools/splash-theme.conf)
+	splash_geninitramfs --res=$(cat /etc/dt-tools/splash-res.conf) -g /boot/${BOOTFILE} $(cat /etc/dt-tools/splash-theme.conf) -v
+	ln -svf ${BOOTFILE} /boot/initramfs
+fi

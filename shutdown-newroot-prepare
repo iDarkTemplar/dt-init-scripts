@@ -1,0 +1,100 @@
+#!/bin/sh
+
+copy()
+{
+	local from=$1
+	local where=$2
+
+	#echo copying $from to $where
+
+	cp -a $from $where
+	if [ -L $from ] ; then
+		local link=$(readlink $from)
+		if [[ "$link" != /* ]] ; then
+			link="$(dirname $from)/$link"
+		fi
+
+		copy $link ${TMPDIR}/$link
+	fi
+}
+
+make_executable()
+{
+	local what=$1
+	chmod 755 $(readlink -e $what)
+}
+
+mount -t tmpfs none /tmp
+
+TMPDIR=$(mktemp -d)
+mount -t tmpfs none ${TMPDIR}
+mkdir -p ${TMPDIR}/dev
+mkdir -p ${TMPDIR}/bin
+mkdir -p ${TMPDIR}/usr/bin
+mkdir -p ${TMPDIR}/sbin
+mkdir -p ${TMPDIR}/usr/sbin
+mkdir -p ${TMPDIR}/root
+mkdir -p ${TMPDIR}/oldroot
+mkdir -p ${TMPDIR}/proc
+mkdir -p ${TMPDIR}/sys
+mkdir -p ${TMPDIR}/etc
+mkdir -p ${TMPDIR}/mnt
+mkdir -p ${TMPDIR}/tmp
+mkdir -p ${TMPDIR}/etc/terminfo/l
+mkdir -p ${TMPDIR}/lib64
+mkdir -p ${TMPDIR}/etc/dt-tools
+
+mkdir -p ${TMPDIR}/lib64/splash/cache
+ln -s lib64 ${TMPDIR}/lib
+
+touch ${TMPDIR}/etc/mtab
+
+copy /etc/terminfo/l/linux ${TMPDIR}/etc/terminfo/l/
+copy /etc/dt-tools/mtab.conf ${TMPDIR}/etc/dt-tools/mtab.conf
+
+copy /bin/busybox ${TMPDIR}/bin/busybox
+copy /sbin/cryptsetup ${TMPDIR}/bin/cryptsetup
+
+copy /usr/share/dt-tools/busybox-halt ${TMPDIR}/sbin/halt
+make_executable ${TMPDIR}/sbin/halt
+copy /usr/share/dt-tools/busybox-poweroff ${TMPDIR}/sbin/poweroff
+make_executable ${TMPDIR}/sbin/poweroff
+copy /usr/share/dt-tools/busybox-reboot ${TMPDIR}/sbin/reboot
+make_executable ${TMPDIR}/sbin/reboot
+
+copy /usr/share/dt-tools/linuxrc-readmtab ${TMPDIR}/bin/linuxrc-readmtab
+make_executable ${TMPDIR}/bin/linuxrc-readmtab
+copy /usr/share/dt-tools/shutdown-newroot-run ${TMPDIR}/bin/shutdown-newroot-run
+make_executable ${TMPDIR}/bin/shutdown-newroot-run
+
+for i in ${TMPDIR}/bin ${TMPDIR}/usr/bin ${TMPDIR}/sbin ${TMPDIR}/usr/sbin ; do
+	for app in $i/* ; do
+		lddtree -l $app 2>/dev/null | tail -n +2 | while read lib ; do
+			if [ ! -e "${TMPDIR}/$lib" ] ; then
+				[ -e ${TMPDIR}/`dirname $lib` ] || mkdir -p ${TMPDIR}/`dirname $lib`
+				copy $lib ${TMPDIR}/$lib
+			fi
+		done
+	done
+done
+
+ln -s busybox ${TMPDIR}/bin/sh
+ln -s busybox ${TMPDIR}/bin/ln
+ln -s busybox ${TMPDIR}/bin/cat
+ln -s busybox ${TMPDIR}/bin/mount
+ln -s busybox ${TMPDIR}/bin/umount
+ln -s busybox ${TMPDIR}/bin/chroot
+ln -s busybox ${TMPDIR}/bin/sed
+ln -s busybox ${TMPDIR}/bin/grep
+
+ln -s /bin/busybox ${TMPDIR}/usr/bin/seq
+ln -s /bin/busybox ${TMPDIR}/usr/bin/expr
+
+mount --rbind /dev ${TMPDIR}/dev
+mount --rbind /sys ${TMPDIR}/sys
+mount --rbind /proc ${TMPDIR}/proc
+
+cd ${TMPDIR}
+pivot_root . oldroot
+exec chroot . /bin/shutdown-newroot-run $@ </dev/console >/dev/console 2>&1
+exec /bin/sh </dev/console >/dev/console 2>&1
