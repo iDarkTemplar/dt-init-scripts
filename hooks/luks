@@ -1,0 +1,115 @@
+#!/bin/sh
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+helper_luks_read_mtab() {
+	local MTAB=$1
+
+	let luks_mtab_items_count=0
+
+	if [ ! -z "$MTAB" ]; then
+		while read -r line ; do
+			set -- $(echo $line | sed -e 's:#.*$::')
+
+			if [ ! -z "$1" ] && [ ! -z "$2" ] && [ ! -z "$3" ] && [ -z "$4" ] ; then
+				eval luks_mtab_devices_${luks_mtab_items_count}="$1"
+				eval luks_mtab_names_${luks_mtab_items_count}="$2"
+				eval luks_mtab_key_files_${luks_mtab_items_count}="$3"
+				luks_mtab_items_count=$(expr ${luks_mtab_items_count} + 1)
+			fi
+		done < $MTAB
+	fi
+}
+
+# parameters: $1 - hook-specific options
+hook_parse_args_luks() {
+	local params=$1
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				luks_config_file=${param#configfile=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+}
+
+hook_run_luks() {
+	helper_luks_read_mtab "${luks_config_file}"
+
+	local filenames_encrypted=""
+	local decrypted_everything=1
+
+	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
+		filenames_encrypted="${filenames_encrypted} /root/$(eval echo \$luks_mtab_key_files_$i).gpg"
+	done
+
+	# go interactive
+	if type -t set_verbosity >/dev/null ; then
+		set_verbosity 1
+	fi
+
+	# decrypt
+	/usr/bin/gpg --quiet --decrypt-files ${filenames_encrypted} 2>/dev/null
+
+	# go non-interactive
+	if type -t set_verbosity >/dev/null ; then
+		set_verbosity 0
+	fi
+
+	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
+		if [ ! -e "/root/$(eval echo \$luks_mtab_key_files_$i)" ] ; then
+			decrypted_everything=0
+		fi
+	done
+
+	if [ "$decrypted_everything" -eq 1 ] ; then
+		for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
+			/sbin/cryptsetup -y --key-file "/root/$(eval echo \$luks_mtab_key_files_$i)" luksOpen "$(eval echo \$luks_mtab_devices_$i)" "$(eval echo \$luks_mtab_names_$i)"
+		done
+	fi
+
+	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
+		if [ -e "/root/$(eval echo \$luks_mtab_key_files_$i)" ] ; then
+
+			if [ -x /usr/bin/shred ] ; then
+				/usr/bin/shred -u "/root/$(eval echo \$luks_mtab_key_files_$i)"
+			else
+				/bin/rm -f "/root/$(eval echo \$luks_mtab_key_files_$i)"
+			fi
+		fi
+	done
+
+	if [ "$decrypted_everything" -ne 1 ] ; then
+		return 1
+	fi
+
+	return 0
+}
+
+hook_shutdown_luks() {
+	helper_luks_read_mtab "${luks_config_file}"
+
+	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
+		/sbin/cryptsetup luksClose "$(eval echo \$luks_mtab_names_$i)"
+	done
+}
+
+luks_config_file=

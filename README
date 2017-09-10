@@ -1,0 +1,12 @@
+dt-init-scripts
+
+It's initramfs script with hooks inspired by Archlinux.
+It's also a set of scripts for opposite task: shutdown with proper deinitialization of subsystems.
+
+Currently implemented hooks providing support for:
+	- fbsplash
+	- luks
+	- suspend
+
+Known issues:
+	- Sometimes fbsplash doesn't go into verbose mode. Manually switching to console may be required.

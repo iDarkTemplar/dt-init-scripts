@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# $1 = initramfs root, $2 - parameters (optional)
+common_hook_install_base() {
+	local basedir=$1
+
+	mkdir -p "${basedir}/dev"
+	mkdir -p "${basedir}/bin"
+	mkdir -p "${basedir}/usr/bin"
+	mkdir -p "${basedir}/sbin"
+	mkdir -p "${basedir}/usr/sbin"
+	mkdir -p "${basedir}/root"
+	mkdir -p "${basedir}/proc"
+	mkdir -p "${basedir}/sys"
+	mkdir -p "${basedir}/etc"
+	mkdir -p "${basedir}/mnt"
+	mkdir -p "${basedir}/tmp"
+	mkdir -p "${basedir}/etc/hooks"
+	mkdir -p "${basedir}/etc/helpers"
+
+	if [ $(uname -m) = "x86_64" ] ; then
+		mkdir -p "${basedir}/lib64"
+		mkdir -p "${basedir}/usr/lib64"
+		make_symlink "lib64" "${basedir}/lib"
+		make_symlink "lib64" "${basedir}/usr/lib"
+	else
+		mkdir -p "${basedir}/lib"
+		mkdir -p "${basedir}/usr/lib"
+	fi
+
+	copy "/etc/terminfo/l/linux" "${basedir}/etc/terminfo/l/linux" "${basedir}"
+
+	copy_executable "${sharedir}/helpers/linuxrc-config" "${basedir}/etc/helpers/linuxrc-config" "${basedir}"
+
+	copy_executable "/bin/busybox" "${basedir}/bin/busybox" "${basedir}"
+	copy_executable "${sharedir}/helpers/busybox-halt" "${basedir}/sbin/halt" "${basedir}"
+	copy_executable "${sharedir}/helpers/busybox-poweroff" "${basedir}/sbin/poweroff" "${basedir}"
+	copy_executable "${sharedir}/helpers/busybox-reboot" "${basedir}/sbin/reboot" "${basedir}"
+	copy_executable "/sbin/badblocks" "${basedir}/sbin/badblocks" "${basedir}"
+	copy_executable "/sbin/fsck.ext2" "${basedir}/sbin/fsck.ext2" "${basedir}"
+	copy_executable "/sbin/fsck.ext3" "${basedir}/sbin/fsck.ext3" "${basedir}"
+	copy_executable "/sbin/fsck.ext4" "${basedir}/sbin/fsck.ext4" "${basedir}"
+
+	make_symlink "busybox" "${basedir}/bin/cat"
+	make_symlink "busybox" "${basedir}/bin/sh"
+	make_symlink "busybox" "${basedir}/bin/rm"
+	make_symlink "busybox" "${basedir}/bin/switch_root"
+	make_symlink "busybox" "${basedir}/bin/chroot"
+	make_symlink "busybox" "${basedir}/bin/pivot_chroot"
+	make_symlink "busybox" "${basedir}/bin/sed"
+	make_symlink "busybox" "${basedir}/bin/grep"
+	make_symlink "busybox" "${basedir}/bin/mount"
+	make_symlink "busybox" "${basedir}/bin/umount"
+	make_symlink "busybox" "${basedir}/bin/ls"
+	make_symlink "busybox" "${basedir}/bin/ln"
+	make_symlink "busybox" "${basedir}/bin/echo"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/seq"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/expr"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/["
+	make_symlink "/bin/busybox" "${basedir}/sbin/mdev"
+
+	touch "${basedir}/etc/mtab"
+
+	copy_executable "${sharedir}/hooks/base" "${basedir}/etc/hooks/base" "${basedir}"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_install_base() {
+	local basedir=$1
+	local params=$2
+
+	common_hook_install_base $basedir $params
+
+	copy_executable "${sharedir}/helpers/linuxrc-init-finish" "${basedir}/sbin/linuxrc-init-finish" "${basedir}"
+	copy_executable "${sharedir}/helpers/linuxrc-runhooks" "${basedir}/sbin/linuxrc-runhooks" "${basedir}"
+	copy_executable "${sharedir}/helpers/linuxrc" "${basedir}/init" "${basedir}"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_shutdown_install_base() {
+	local basedir=$1
+	local params=$2
+
+	common_hook_install_base $basedir $params
+
+	mkdir -p "${basedir}/oldroot"
+
+	copy_executable "${sharedir}/helpers/shutdown-newroot-run" "${basedir}/bin/shutdown-newroot-run" "${basedir}"
+}

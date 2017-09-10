@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# options:
+# resume_device=$path
+#	path to device to try resuming from
+
+# $1 = parameters (optional)
+hook_check_params_suspend() {
+	local params=$1
+	local resume_device=
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			resume_device=*)
+				resume_device=${param#resume_device=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_install_suspend() {
+	local basedir=$1
+
+	mkdir -p "${basedir}/etc"
+
+	if [ $(uname -m) = "x86_64" ] ; then
+		mkdir -p "${basedir}/lib64"
+		mkdir -p "${basedir}/usr/lib64"
+		make_symlink "lib64" "${basedir}/lib"
+		make_symlink "lib64" "${basedir}/usr/lib"
+	else
+		mkdir -p "${basedir}/lib"
+		mkdir -p "${basedir}/usr/lib"
+	fi
+
+	# userspace suspend support
+	if [ -x "/usr/lib/suspend/resume" ] ; then
+		copy_executable "/usr/lib/suspend/resume" "${basedir}/usr/lib/suspend/resume" "${basedir}"
+		copy "/etc/suspend.conf" "${basedir}/etc/suspend.conf" "${basedir}"
+	fi
+
+	copy_executable "${sharedir}/hooks/suspend" "${basedir}/etc/hooks/suspend" "${basedir}"
+}

@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# parameters: $1 = device path
+suspend_getdevnumber() {
+	set -- $(ls -lL $1)
+	echo ${5%,}:$6
+}
+
+# parameters: $1 - hook-specific options
+hook_parse_args_suspend() {
+	local params=$1
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			resume_device=*)
+				suspend_resume_device=${param#resume_device=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	local CMDLINE=$(/bin/cat /proc/cmdline)
+
+	for cmd in $CMDLINE; do
+		case $cmd in
+			noresume)
+				suspend_enabled=0 ;;
+			resume_device=*)
+				suspend_resume_device=${cmd#resume_device=} ;;
+		esac
+	done
+
+	if [ -n "${suspend_resume_device}" ] ; then
+		suspend_enabled=0
+	fi
+}
+
+hook_post_suspend() {
+	# try resume, first userspace, then kernelspace
+
+	# check for crypt_resume par, noresume par and kernel suspend support
+	if [ -n "${suspend_resume_device}" -a ${suspend_enabled} = 1 ]; then
+
+		if [ -x /usr/lib/suspend/resume ]; then
+			#echo "Trying to resume with userspace tools from ${suspend_resume_device}"
+
+			if [ $(splash_is_enabled) = 1 -a $(splash_is_verbose) = 1 ] ; then
+				/usr/lib/suspend/resume -P 'splash = y' "${suspend_resume_device}"
+			else
+				/usr/lib/suspend/resume -P 'splash = n' "${suspend_resume_device}"
+			fi
+		fi
+
+		if [ -f /sys/power/resume ]; then
+			#echo "Trying to resume with kernel-space tools from ${suspend_resume_device}"
+			local devnumber=$(suspend_getdevnumber ${suspend_resume_device})
+			echo "$devnumber" > /sys/power/resume
+		fi
+	fi
+}
+
+suspend_resume_device=
+suspend_enabled=1

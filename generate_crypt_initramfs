@@ -1,153 +1,110 @@
 #!/bin/bash
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-die() { echo "$@" 1>&2 ; exit 1; }
+configdir="/etc/dt-init-scripts"
+sharedir="/usr/share/dt-init-scripts"
+libexecdir="/usr/libexec/dt-init-scripts"
+bootdir="/boot"
 
-copy()
-{
-	local from=$1
-	local where=$2
+. "${libexecdir}/functions/common"
 
-	echo copying $from to $where
+helper_copy_verbose=1
 
-	cp -a $from $where
-	if [ -L $from ] ; then
-		local link=$(readlink $from)
-		if [[ "$link" != /* ]] ; then
-			link="$(dirname $from)/$link"
-		fi
-
-		copy $link ${TMPDIR}/$link
-	fi
-}
-
-make_executable()
-{
-	local what=$1
-	chmod -v 755 $(readlink -e $what)
-}
-
-#mount -o remount,exec -l /tmp
 TMPDIR=$(mktemp -d)
 TMPFILE=$(mktemp)
 
-mkdir -p ${TMPDIR}/dev
-mkdir -p ${TMPDIR}/bin
-mkdir -p ${TMPDIR}/usr/bin
-mkdir -p ${TMPDIR}/sbin
-mkdir -p ${TMPDIR}/usr/sbin
-mkdir -p ${TMPDIR}/root
-mkdir -p ${TMPDIR}/proc
-mkdir -p ${TMPDIR}/sys
+hooks=
+
+while read -r line ; do
+	if [ ! -z "$line" ] ; then
+		case $line in
+			initrd_hooks=\"*\")
+				hooks="$(echo $line | sed -e 's|^initrd_hooks="||' -e 's|\"$||')"
+				;;
+		esac
+	fi
+done < "${configdir}/dt-init-scripts.conf"
+
+# first check options and ensure required functions are provided
+for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+	basehook="$(echo $hook | cut -d: -f 1)"
+	hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+	[ -e "${libexecdir}/modules/${basehook}" ] || die "hook \"${basehook}\" doesn't exist"
+
+	. "${libexecdir}/modules/${basehook}"
+
+	type -t hook_install_${basehook} >/dev/null || die "hook \"${basehook}\" doesn't provide required function \"hook_install_${basehook}\""
+
+	if type -t hook_check_params_${basehook} >/dev/null ; then
+		hook_check_params_${basehook} "${hookopts}"
+	fi
+done
+
+# then install hook
+for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+	basehook="$(echo $hook | cut -d: -f 1)"
+	hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+	hook_install_${basehook} "${TMPDIR}" "${hookopts}"
+done
+
+# and now write options
+hookoptsline=
+
+for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+	basehook="$(echo $hook | cut -d: -f 1)"
+	hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+	if type -t hook_write_params_${basehook} >/dev/null ; then
+		hookopts="$(hook_write_params_${basehook} "${hookopts}")"
+	fi
+
+	hookoptslinepart="${basehook}"
+
+	if [ -n "${hookopts}" ] ; then
+		hookoptslinepart="${basehook}:${hookopts}"
+	fi
+
+	if [ -n "${hookoptsline}" ] ; then
+		hookoptsline="${hookoptsline},${hookoptslinepart}"
+	else
+		hookoptsline="${hookoptslinepart}"
+	fi
+done
+
 mkdir -p ${TMPDIR}/etc
-mkdir -p ${TMPDIR}/mnt
-mkdir -p ${TMPDIR}/tmp
-mkdir -p ${TMPDIR}/etc/terminfo/l
-mkdir -p ${TMPDIR}/lib64
-mkdir -p ${TMPDIR}/etc/dt-tools
-
-mkdir -p ${TMPDIR}/lib64/splash/cache
-ln -s lib64 ${TMPDIR}/lib
-
-touch ${TMPDIR}/etc/mtab
-
-#cp -aL /boot/*_key.gpg ${TMPDIR}/root/
-#cp -aL /dev/sda* ${TMPDIR}/dev/
-copy /usr/share/dt-tools/linuxrc ${TMPDIR}/init
-make_executable ${TMPDIR}/init
-copy /etc/terminfo/l/linux ${TMPDIR}/etc/terminfo/l/
-
-copy /usr/share/dt-tools/linuxrc-config ${TMPDIR}/bin/linuxrc-config
-make_executable ${TMPDIR}/bin/linuxrc-config
-copy /usr/share/dt-tools/linuxrc-decrypt ${TMPDIR}/bin/linuxrc-decrypt
-make_executable ${TMPDIR}/bin/linuxrc-decrypt
-copy /usr/share/dt-tools/linuxrc-init-finish ${TMPDIR}/bin/linuxrc-init-finish
-make_executable ${TMPDIR}/bin/linuxrc-init-finish
-copy /usr/share/dt-tools/linuxrc-readmtab ${TMPDIR}/bin/linuxrc-readmtab
-make_executable ${TMPDIR}/bin/linuxrc-readmtab
-
-copy /bin/busybox ${TMPDIR}/bin/busybox
-copy /sbin/cryptsetup ${TMPDIR}/bin/cryptsetup
-
-copy /usr/bin/gpg ${TMPDIR}/usr/bin/gpg
-copy /usr/bin/gpg-agent ${TMPDIR}/usr/bin/
-copy /usr/bin/pinentry-curses ${TMPDIR}/usr/bin/
-
-copy /usr/bin/shred ${TMPDIR}/usr/bin/
-
-#cp -aL /usr/sbin/splash_util ${TMPDIR}/usr/sbin/
-#cp -aL /sbin/splash_util.static ${TMPDIR}/sbin/
-#cp -aL /usr/sbin/fbcondecor_ctl ${TMPDIR}/usr/sbin/
-
-copy /usr/share/dt-tools/busybox-halt ${TMPDIR}/sbin/halt
-make_executable ${TMPDIR}/sbin/halt
-copy /usr/share/dt-tools/busybox-poweroff ${TMPDIR}/sbin/poweroff
-make_executable ${TMPDIR}/sbin/poweroff
-copy /usr/share/dt-tools/busybox-reboot ${TMPDIR}/sbin/reboot
-make_executable ${TMPDIR}/sbin/reboot
-
-copy /sbin/badblocks ${TMPDIR}/sbin/
-copy /sbin/fsck.ext2 ${TMPDIR}/sbin/
-copy /sbin/fsck.ext3 ${TMPDIR}/sbin/
-copy /sbin/fsck.ext4 ${TMPDIR}/sbin/
-
-# userspace suspend support
-if [ -x /usr/lib/suspend/resume ] ; then
-	copy /usr/lib/suspend/resume ${TMPDIR}/sbin/
-	copy /etc/suspend.conf ${TMPDIR}/etc/
-fi
-
-gcc /usr/share/dt-tools/splash_ctl.c -o ${TMPDIR}/sbin/splash_ctl $(pkg-config --cflags --libs libfbsplash libfbsplashrender) || die "couldn't compile splash_ctl"
-make_executable ${TMPDIR}/sbin/splash_ctl
-
-for i in ${TMPDIR}/bin ${TMPDIR}/usr/bin ${TMPDIR}/sbin ${TMPDIR}/usr/sbin ; do
-	for app in $i/* ; do
-		lddtree -l $app | tail -n +2 | while read lib ; do
-			if [ ! -e "${TMPDIR}/$lib" ] ; then
-				[ -e ${TMPDIR}/`dirname $lib` ] || mkdir -p ${TMPDIR}/`dirname $lib`
-				copy $lib ${TMPDIR}/$lib
-			fi
-		done
-	done
-done
-
-ln -s busybox ${TMPDIR}/bin/cat
-ln -s busybox ${TMPDIR}/bin/sh
-ln -s busybox ${TMPDIR}/bin/rm
-ln -s busybox ${TMPDIR}/bin/switch_root
-ln -s busybox ${TMPDIR}/bin/sed
-ln -s busybox ${TMPDIR}/bin/grep
-ln -s busybox ${TMPDIR}/bin/mount
-ln -s busybox ${TMPDIR}/bin/umount
-ln -s busybox ${TMPDIR}/bin/ls
-ln -s busybox ${TMPDIR}/bin/echo
-
-ln -s /bin/busybox ${TMPDIR}/usr/bin/seq
-ln -s /bin/busybox ${TMPDIR}/usr/bin/expr
-ln -s /bin/busybox "${TMPDIR}/usr/bin/["
-ln -s /bin/busybox ${TMPDIR}/sbin/mdev
-
-ln -s pinentry-curses ${TMPDIR}/usr/bin/pinentry
-
-copy /etc/dt-tools/mtab.conf ${TMPDIR}/etc/dt-tools/mtab.conf
-. ${TMPDIR}/bin/linuxrc-readmtab ${TMPDIR}/etc/dt-tools/mtab.conf
-
-for i in $(seq 0 $(expr ${mtab_items_count} - 1)) ; do
-	copy "/boot/$(eval echo \$mtab_key_files$i).gpg" "${TMPDIR}/root/$(eval echo \$mtab_key_files$i).gpg"
-done
+echo initrd_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
 
 cd ${TMPDIR}
 find . -print | cpio -o -H newc | gzip -9 > ${TMPFILE}
 chmod 644 ${TMPFILE}
 
-if [ -f /etc/dt-tools/splash-res.conf -a -f /etc/dt-tools/splash-theme.conf ] ; then
-	splash_geninitramfs --verbose --res $(cat /etc/dt-tools/splash-res.conf) --append ${TMPFILE} $(cat /etc/dt-tools/splash-theme.conf)
-	BOOTFILE=initramfs-bootsplash-$(cat /etc/dt-tools/splash-theme.conf)
+if [ -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] ; then
+	splash_geninitramfs --verbose --res $(cat "${configdir}/splash-res.conf") --append ${TMPFILE} $(cat "${configdir}/splash-theme.conf")
+	BOOTFILE=initramfs-bootsplash-$(cat "${configdir}/splash-theme.conf")
 else
 	BOOTFILE=initramfs-nobootsplash
 fi
 
-mv -vf ${TMPFILE} /boot/${BOOTFILE}
-ln -svf ${BOOTFILE} /boot/initramfs
+mv -vf ${TMPFILE} "${bootdir}/${BOOTFILE}"
+ln -svf ${BOOTFILE} "${bootdir}/initramfs"
 
 rm -rf ${TMPDIR}
-#mount -o remount,noexec /tmp

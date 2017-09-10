@@ -1,0 +1,149 @@
+#!/bin/sh
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+mount_all() {
+	mount -t proc none /proc
+	mount -t sysfs none /sys
+	mount -t devtmpfs none /dev
+}
+
+umount_all() {
+	umount /proc
+	umount /sys
+	umount /dev
+}
+
+hook_get() {
+	while read -r line ; do
+		if [ ! -z "$line" ] ; then
+			case $line in
+				initrd_hooks=\"*\")
+					hooks="$(echo $line | sed -e 's|^initrd_hooks="||' -e 's|\"$||')"
+					;;
+			esac
+		fi
+	done < "${configdir}/dt-init-scripts.conf"
+
+	for cmd in $(/bin/cat /proc/cmdline); do
+		case $cmd in
+			initrd_hooks=\"*\")
+				hooks="$(echo $line | sed -e 's|^initrd_hooks="||' -e 's|\"$||')"
+				;;
+		esac
+	done
+}
+
+hook_load() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if [ -e "/etc/hooks/${basehook}" ] ; then
+			. "/etc/hooks/${basehook}"
+		fi
+done
+}
+
+hook_parse_args() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_parse_args_${basehook} >/dev/null ; then
+			hook_parse_args_${basehook} "${hookopts}"
+		fi
+	done
+}
+
+hook_run() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_run_${basehook} >/dev/null ; then
+			hook_run_${basehook} "${hookopts}"
+			if [ $? -ne 0 ] ; then
+				# hook failed, deinit and exec to shell
+				exec /bin/sh
+			fi
+		fi
+	done
+}
+
+hook_post() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_post_${basehook} >/dev/null ; then
+			hook_post_${basehook} "${hookopts}"
+		fi
+	done
+}
+
+hook_deinit() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_deinit_${basehook} >/dev/null ; then
+			hook_deinit_${basehook} "${hookopts}"
+		fi
+	done
+}
+
+hook_get_shutdown() {
+	while read -r line ; do
+		if [ ! -z "$line" ] ; then
+			case $line in
+				shutdown_hooks=\"*\")
+					hooks="$(echo $line | sed -e 's|^shutdown_hooks="||' -e 's|\"$||')"
+					;;
+			esac
+		fi
+	done < "${configdir}/dt-init-scripts.conf"
+}
+
+hook_shutdown() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_shutdown_${basehook} >/dev/null ; then
+			hook_shutdown_${basehook} "${hookopts}"
+		fi
+	done
+}
+
+set_verbosity() {
+	local verbose=$1
+
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_set_verbosity_${basehook} >/dev/null ; then
+			hook_set_verbosity_${basehook} "$verbose" "${hookopts}"
+		fi
+	done
+}
+
+configdir="/etc/dt-init-scripts"
+hooks=

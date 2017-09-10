@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+die() { echo "$@" 1>&2 ; exit 1; }
+
+make_symlink()
+{
+	local from=$1
+	local where=$2
+
+	local parentdir="$(dirname "${where}")"
+	mkdir -p "${parentdir}"
+
+	if [ ! -e "$where" ] ; then
+		ln -s "$from" "$where"
+	fi
+}
+
+copy()
+{
+	local from=$1
+	local where=$2
+	local rootdir=$3
+
+	if [ $helper_copy_verbose -ne 0 ] ; then
+		echo copying $from to $where
+	fi
+
+	local parentdir="$(dirname "${where}")"
+	mkdir -p "${parentdir}"
+
+	cp -a "$from" "$where"
+	if [ -L "$from" ] ; then
+		local link="$(readlink $from)"
+		if [[ "$link" != /* ]] ; then
+			link="$(dirname $from)/$link"
+		fi
+
+		copy "$link" "${rootdir}/$link" "$rootdir"
+	else
+		lddtree -l "$from" | tail -n +2 | while read lib ; do
+			if [ ! -e "${rootdir}/$lib" ] ; then
+				[ -e "${rootdir}/$(dirname $lib)" ] || mkdir -p "${rootdir}/$(dirname $lib)"
+				copy "$lib" "${rootdir}/$lib" "${rootdir}"
+			fi
+		done
+	fi
+}
+
+make_executable()
+{
+	local what=$1
+	local verbose=
+
+	if [ $helper_copy_verbose -ne 0 ] ; then
+		verbose=-v
+	fi
+
+	chmod $verbose 755 "$(readlink -e $what)"
+}
+
+copy_executable()
+{
+	local from=$1
+	local where=$2
+	local rootdir=$3
+
+	copy "$from" "$where" "$rootdir"
+	make_executable "$where"
+}
+
+helper_copy_verbose=0

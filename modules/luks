@@ -1,0 +1,161 @@
+#!/bin/bash
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# options:
+# configfile=$path
+#	path to file containing description of encrypted devices, each line is in format "device_path device_name key_file_name"
+#	full key_file_name is calculated as following: "${keysdir}/${key_file_name}.gpg"
+#	required parameter
+# keysdir=$path
+#	path containing keys to devices
+#	optional parameter, default value is "/boot"
+
+# $1 = parameters (optional)
+hook_check_params_luks() {
+	local params=$1
+	local configfile=
+	local keysdir="/boot"
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+			keysdir=*)
+				keysdir=${param#keysdir=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	[ -f "${configfile}" ] || die "Hook \"luks\": configfile option doesn't point to existing file!"
+	[ -d "${keysdir}" ] || die "Hook \"luks\": keysdir option doesn't point to existing file!"
+}
+
+hook_shutdown_check_params_luks() {
+	local params=$1
+	local configfile=
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	[ -f "${configfile}" ] || die "Hook \"luks\": configfile option doesn't point to existing file!"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+common_hook_install_luks() {
+	local basedir=$1
+	local params=$2
+	local configfile=
+	local keysdir="/boot"
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+		esac
+	done
+
+	mkdir -p "${basedir}/bin"
+	mkdir -p "${basedir}/usr/bin"
+	mkdir -p "${basedir}/sbin"
+	mkdir -p "${basedir}/usr/sbin"
+	mkdir -p "${basedir}/etc/hooks"
+
+	copy_executable "/sbin/cryptsetup" "${basedir}/sbin/cryptsetup" "${basedir}"
+	copy_executable "/usr/bin/gpg" "${basedir}/usr/bin/gpg" "${basedir}"
+	copy_executable "/usr/bin/gpg-agent" "${basedir}/usr/bin/gpg-agent" "${basedir}"
+	copy_executable "/usr/bin/pinentry-curses" "${basedir}/usr/bin/pinentry-curses" "${basedir}"
+	copy_executable "/usr/bin/shred" "${basedir}/usr/bin/shred" "${basedir}"
+
+	make_symlink "pinentry-curses" "${basedir}/usr/bin/pinentry"
+
+	copy_executable "${sharedir}/hooks/luks" "${basedir}/etc/hooks/luks" "${basedir}"
+
+	copy "${configfile}" "${basedir}/${configfile}" "${basedir}"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_install_luks() {
+	local basedir=$1
+	local params=$2
+	local configfile=
+	local keysdir="/boot"
+
+	common_hook_install_luks $basedir $params
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+			keysdir=*)
+				keysdir=${param#keysdir=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	. "${sharedir}/hooks/luks"
+	helper_luks_read_mtab "${configfile}"
+
+	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
+		copy "${keysdir}/$(eval echo \$luks_mtab_key_files_${i}).gpg" "${basedir}/root/$(eval echo \$luks_mtab_key_files_${i}).gpg" "${basedir}"
+	done
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_shutdown_install_luks() {
+	local basedir=$1
+	local params=$2
+
+	common_hook_install_luks $basedir $params
+}
+
+# $1 = parameters (optional)
+hook_write_params_luks() {
+	local params=$1
+	local paramsout=
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				if [ -n "${paramsout}" ] ; then
+					paramsout="${paramsout}:${param}"
+				else
+					paramsout="${param}"
+				fi
+				;;
+			keysdir=*)
+				# NOTE: don't pass this parameter
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	echo -n "$paramsout"
+}

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
@@ -18,11 +18,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-configdir="/etc/dt-init-scripts"
-bootdir="/boot"
+. /etc/helpers/linuxrc-config
 
-if [ -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] ; then
-	BOOTFILE=initramfs-bootsplash-$(cat "${configdir}/splash-theme.conf")
-	splash_geninitramfs --res=$(cat "${configdir}/splash-res.conf") -g "${bootdir}/${BOOTFILE}" $(cat "${configdir}/splash-theme.conf") -v
-	ln -svf ${BOOTFILE} "${bootdir}/initramfs"
-fi
+hook_get
+hook_load
+hook_parse_args
+hook_post
+
+# mount root
+mount -r $root /mnt
+
+hook_deinit
+
+umount_all
+
+# mount helper filesystems
+mount -t devtmpfs none /mnt/dev
+mount -t proc none /mnt/proc
+mount -t sysfs none /mnt/sys
+exec switch_root /mnt /sbin/init $(/bin/cat /proc/cmdline)
+
+# switch_root failed, failsafe mode
+mount_all
+# go interactive mode
+set_verbosity 1
+exec /bin/sh

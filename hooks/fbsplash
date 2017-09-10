@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
@@ -18,11 +18,33 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-configdir="/etc/dt-init-scripts"
-bootdir="/boot"
+hook_parse_args_fbsplash() {
+	local CMDLINE=$(/bin/cat /proc/cmdline)
 
-if [ -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] ; then
-	BOOTFILE=initramfs-bootsplash-$(cat "${configdir}/splash-theme.conf")
-	splash_geninitramfs --res=$(cat "${configdir}/splash-res.conf") -g "${bootdir}/${BOOTFILE}" $(cat "${configdir}/splash-theme.conf") -v
-	ln -svf ${BOOTFILE} "${bootdir}/initramfs"
-fi
+	for cmd in $CMDLINE; do
+		case $cmd in
+			splash=*)
+				fbsplash_theme="$(echo "$cmd"|sed 's/.*theme://'|sed 's/,.*//')"
+				[ -n "$(echo "$cmd"|grep silent)" ] && fbsplash_silent=1
+				;;
+#			CONSOLE=*)
+#				fbsplash_console="$(echo "$cmd"|cut -b9-)" ;;
+		esac
+	done
+}
+
+hook_set_verbosity_fbsplash() {
+	local verbose=$1
+
+	if [ $fbsplash_silent -eq 1 ] ; then
+		if [ $verbose -eq 0 ] ; then
+			/sbin/splash_ctl silent
+		else
+			/sbin/splash_ctl verbose
+		fi
+	fi
+}
+
+fbsplash_silent=0
+fbsplash_theme=
+#fbsplash_console=

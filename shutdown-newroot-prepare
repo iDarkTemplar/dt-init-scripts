@@ -1,94 +1,96 @@
 #!/bin/sh
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
-copy()
-{
-	local from=$1
-	local where=$2
+configdir="/etc/dt-init-scripts"
+sharedir="/usr/share/dt-init-scripts"
+libexecdir="/usr/libexec/dt-init-scripts"
 
-	#echo copying $from to $where
+. "${libexecdir}/functions/common"
 
-	cp -a $from $where
-	if [ -L $from ] ; then
-		local link=$(readlink $from)
-		if [[ "$link" != /* ]] ; then
-			link="$(dirname $from)/$link"
-		fi
+hooks=
 
-		copy $link ${TMPDIR}/$link
+while read -r line ; do
+	if [ ! -z "$line" ] ; then
+		case $line in
+			shutdown_hooks=\"*\")
+				hooks="$(echo $line | sed -e 's|^shutdown_hooks="||' -e 's|\"$||')"
+				;;
+		esac
 	fi
-}
-
-make_executable()
-{
-	local what=$1
-	chmod 755 $(readlink -e $what)
-}
+done < "${configdir}/dt-init-scripts.conf"
 
 mount -t tmpfs none /tmp
 
 TMPDIR=$(mktemp -d)
+
 mount -t tmpfs none ${TMPDIR}
-mkdir -p ${TMPDIR}/dev
-mkdir -p ${TMPDIR}/bin
-mkdir -p ${TMPDIR}/usr/bin
-mkdir -p ${TMPDIR}/sbin
-mkdir -p ${TMPDIR}/usr/sbin
-mkdir -p ${TMPDIR}/root
-mkdir -p ${TMPDIR}/oldroot
-mkdir -p ${TMPDIR}/proc
-mkdir -p ${TMPDIR}/sys
-mkdir -p ${TMPDIR}/etc
-mkdir -p ${TMPDIR}/mnt
-mkdir -p ${TMPDIR}/tmp
-mkdir -p ${TMPDIR}/etc/terminfo/l
-mkdir -p ${TMPDIR}/lib64
-mkdir -p ${TMPDIR}/etc/dt-tools
 
-mkdir -p ${TMPDIR}/lib64/splash/cache
-ln -s lib64 ${TMPDIR}/lib
+# first check options and ensure required functions are provided
+for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+	basehook="$(echo $hook | cut -d: -f 1)"
+	hookopts="$(echo $hook | cut -d: -f 2- -s)"
 
-touch ${TMPDIR}/etc/mtab
+	[ -e "${libexecdir}/modules/${basehook}" ] || die "hook \"${basehook}\" doesn't exist"
 
-copy /etc/terminfo/l/linux ${TMPDIR}/etc/terminfo/l/
-copy /etc/dt-tools/mtab.conf ${TMPDIR}/etc/dt-tools/mtab.conf
+	. "${libexecdir}/modules/${basehook}"
 
-copy /bin/busybox ${TMPDIR}/bin/busybox
-copy /sbin/cryptsetup ${TMPDIR}/bin/cryptsetup
+	type -t hook_shutdown_install_${basehook} >/dev/null || die "hook \"${basehook}\" doesn't provide required function \"hook_shutdown_install_${basehook}\""
 
-copy /usr/share/dt-tools/busybox-halt ${TMPDIR}/sbin/halt
-make_executable ${TMPDIR}/sbin/halt
-copy /usr/share/dt-tools/busybox-poweroff ${TMPDIR}/sbin/poweroff
-make_executable ${TMPDIR}/sbin/poweroff
-copy /usr/share/dt-tools/busybox-reboot ${TMPDIR}/sbin/reboot
-make_executable ${TMPDIR}/sbin/reboot
-
-copy /usr/share/dt-tools/linuxrc-readmtab ${TMPDIR}/bin/linuxrc-readmtab
-make_executable ${TMPDIR}/bin/linuxrc-readmtab
-copy /usr/share/dt-tools/shutdown-newroot-run ${TMPDIR}/bin/shutdown-newroot-run
-make_executable ${TMPDIR}/bin/shutdown-newroot-run
-
-for i in ${TMPDIR}/bin ${TMPDIR}/usr/bin ${TMPDIR}/sbin ${TMPDIR}/usr/sbin ; do
-	for app in $i/* ; do
-		lddtree -l $app 2>/dev/null | tail -n +2 | while read lib ; do
-			if [ ! -e "${TMPDIR}/$lib" ] ; then
-				[ -e ${TMPDIR}/`dirname $lib` ] || mkdir -p ${TMPDIR}/`dirname $lib`
-				copy $lib ${TMPDIR}/$lib
-			fi
-		done
-	done
+	if type -t hook_shutdown_check_params_${basehook} >/dev/null ; then
+		hook_shutdown_check_params_${basehook} "${hookopts}"
+	fi
 done
 
-ln -s busybox ${TMPDIR}/bin/sh
-ln -s busybox ${TMPDIR}/bin/ln
-ln -s busybox ${TMPDIR}/bin/cat
-ln -s busybox ${TMPDIR}/bin/mount
-ln -s busybox ${TMPDIR}/bin/umount
-ln -s busybox ${TMPDIR}/bin/chroot
-ln -s busybox ${TMPDIR}/bin/sed
-ln -s busybox ${TMPDIR}/bin/grep
+# then install shutdown hook
+for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+	basehook="$(echo $hook | cut -d: -f 1)"
+	hookopts="$(echo $hook | cut -d: -f 2- -s)"
 
-ln -s /bin/busybox ${TMPDIR}/usr/bin/seq
-ln -s /bin/busybox ${TMPDIR}/usr/bin/expr
+	hook_shutdown_install_${basehook} "${TMPDIR}" "${hookopts}"
+done
+
+# and now write options
+hookoptsline=
+
+for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+	basehook="$(echo $hook | cut -d: -f 1)"
+	hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+	if type -t hook_write_params_${basehook} >/dev/null ; then
+		hookopts="$(hook_write_params_${basehook} "${hookopts}")"
+	fi
+
+	hookoptslinepart="${basehook}"
+
+	if [ -n "${hookopts}" ] ; then
+		hookoptslinepart="${basehook}:${hookopts}"
+	fi
+
+	if [ -n "${hookoptsline}" ] ; then
+		hookoptsline="${hookoptsline},${hookoptslinepart}"
+	else
+		hookoptsline="${hookoptslinepart}"
+	fi
+done
+
+echo shutdown_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
 
 mount --rbind /dev ${TMPDIR}/dev
 mount --rbind /sys ${TMPDIR}/sys

@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+hook_parse_args_base() {
+	local CMDLINE=$(/bin/cat /proc/cmdline)
+
+	for cmd in $CMDLINE; do
+		case $cmd in
+			dtrecovery)
+				recovery_mode=1 ;;
+			root=*)
+				root=${cmd#root=} ;;
+		esac
+	done
+}
+
+hook_run_base() {
+	# no longer print kernel messages to console
+	echo 0 > /proc/sys/kernel/printk
+
+	if [ -e /proc/sys/kernel/hotplug ] ; then
+		echo /sbin/mdev > /proc/sys/kernel/hotplug
+	fi
+
+	return 0
+}
+
+hook_post_base() {
+	if [ $recovery_mode -eq 1 ] ; then
+		# go interactive
+		if type -t set_verbosity >/dev/null ; then
+			set_verbosity 0
+		fi
+
+		/bin/sh
+
+		# go non-interactive
+		if type -t set_verbosity >/dev/null ; then
+			set_verbosity 0
+		fi
+	fi
+}
+
+hook_shutdown_base() {
+	cat /proc/self/mounts > /etc/mtab
+	umount -l /oldroot
+	cat /proc/self/mounts > /etc/mtab
+}
+
+root=
+recovery_mode=0
