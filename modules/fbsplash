@@ -38,15 +38,6 @@ common_hook_install_fbsplash() {
 
 	copy_executable "${sharedir}/helpers/splash_ctl" "${basedir}/sbin/splash_ctl" "${basedir}"
 	copy_executable "${sharedir}/hooks/fbsplash" "${basedir}/etc/hooks/fbsplash" "${basedir}"
-
-	local themefile=/etc/dt-init-scripts/splash-theme.conf
-	if [ -f $themefile ] ; then
-		local themename="$(cat $themefile)"
-		if [ -d "/etc/splash/$themename" ] ; then
-			mkdir -p "${basedir}/etc/splash"
-			copy "/etc/splash/$themename" "${basedir}/etc/splash/$themename" "${basedir}"
-		fi
-	fi
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
