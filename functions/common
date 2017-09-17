@@ -54,7 +54,7 @@ copy()
 		fi
 
 		copy "$link" "${rootdir}/$link" "$rootdir"
-	else
+	elif [ -f "$from" ] ; then
 		lddtree -l "$from" | tail -n +2 | while read lib ; do
 			if [ ! -e "${rootdir}/$lib" ] ; then
 				[ -e "${rootdir}/$(dirname $lib)" ] || mkdir -p "${rootdir}/$(dirname $lib)"
