@@ -47,10 +47,6 @@ hook_parse_args_suspend() {
 				suspend_resume_device="${cmd#resume_device=}" ;;
 		esac
 	done
-
-	if [ -n "${suspend_resume_device}" ] ; then
-		suspend_enabled=0
-	fi
 }
 
 hook_post_suspend() {
