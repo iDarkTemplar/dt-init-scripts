@@ -26,7 +26,7 @@ hook_parse_args
 hook_post
 
 # mount root
-root_name="$(findfs "$(eval echo "$root")")"
+root_name="$(findfs "$(eval echo "$root")" 2>/dev/null)"
 
 if [ -n "${root_name}" ] ; then
 	mount -r "${root_name}" /mnt

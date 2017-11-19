@@ -83,7 +83,7 @@ hook_run_luks() {
 
 	if [ "$decrypted_everything" -eq 1 ] ; then
 		for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
-			device_name="$(findfs "$(eval echo \$luks_mtab_devices_$i)")"
+			device_name="$(findfs "$(eval echo \$luks_mtab_devices_$i)" 2>/dev/null)"
 			if [ -n "${device_name}" ] ; then
 				/sbin/cryptsetup -y --key-file "/root/$(eval echo \$luks_mtab_key_files_$i)" luksOpen "${device_name}" "$(eval echo \$luks_mtab_names_$i)"
 			fi

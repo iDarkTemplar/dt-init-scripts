@@ -53,7 +53,7 @@ hook_post_suspend() {
 	# try resume, first userspace, then kernelspace
 	local suspend_real_device=""
 
-	suspend_real_device="$(findfs "$(eval echo "${suspend_resume_device}")")"
+	suspend_real_device="$(findfs "$(eval echo "${suspend_resume_device}")" 2>/dev/null)"
 
 	# check for crypt_resume par, noresume par and kernel suspend support
 	if [ -n "${suspend_real_device}" -a ${suspend_enabled} = 1 ]; then
