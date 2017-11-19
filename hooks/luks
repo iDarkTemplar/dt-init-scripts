@@ -56,6 +56,7 @@ hook_run_luks() {
 
 	local filenames_encrypted=""
 	local decrypted_everything=1
+	local device_name=""
 
 	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
 		filenames_encrypted="${filenames_encrypted} /root/$(eval echo \$luks_mtab_key_files_$i).gpg"
@@ -82,7 +83,10 @@ hook_run_luks() {
 
 	if [ "$decrypted_everything" -eq 1 ] ; then
 		for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
-			/sbin/cryptsetup -y --key-file "/root/$(eval echo \$luks_mtab_key_files_$i)" luksOpen "$(eval echo \$luks_mtab_devices_$i)" "$(eval echo \$luks_mtab_names_$i)"
+			device_name="$(findfs "$(eval echo \$luks_mtab_devices_$i)")"
+			if [ -n "${device_name}" ] ; then
+				/sbin/cryptsetup -y --key-file "/root/$(eval echo \$luks_mtab_key_files_$i)" luksOpen "${device_name}" "$(eval echo \$luks_mtab_names_$i)"
+			fi
 		done
 	fi
 

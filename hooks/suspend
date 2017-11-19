@@ -31,7 +31,7 @@ hook_parse_args_suspend() {
 	for param in $(echo $params | sed -e 's|:| |g') ; do
 		case $param in
 			resume_device=*)
-				suspend_resume_device=${param#resume_device=}
+				suspend_resume_device="${param#resume_device=}"
 				;;
 			# TODO: Notify about unsupported option?
 		esac
@@ -44,7 +44,7 @@ hook_parse_args_suspend() {
 			noresume)
 				suspend_enabled=0 ;;
 			resume_device=*)
-				suspend_resume_device=${cmd#resume_device=} ;;
+				suspend_resume_device="${cmd#resume_device=}" ;;
 		esac
 	done
 
@@ -55,23 +55,26 @@ hook_parse_args_suspend() {
 
 hook_post_suspend() {
 	# try resume, first userspace, then kernelspace
+	local suspend_real_device=""
+
+	suspend_real_device="$(findfs "$(eval echo "${suspend_resume_device}")")"
 
 	# check for crypt_resume par, noresume par and kernel suspend support
-	if [ -n "${suspend_resume_device}" -a ${suspend_enabled} = 1 ]; then
+	if [ -n "${suspend_real_device}" -a ${suspend_enabled} = 1 ]; then
 
 		if [ -x /usr/lib/suspend/resume ]; then
-			#echo "Trying to resume with userspace tools from ${suspend_resume_device}"
+			#echo "Trying to resume with userspace tools from ${suspend_real_device}"
 
 			if [ $(splash_is_enabled) = 1 -a $(splash_is_verbose) = 1 ] ; then
-				/usr/lib/suspend/resume -P 'splash = y' "${suspend_resume_device}"
+				/usr/lib/suspend/resume -P 'splash = y' "${suspend_real_device}"
 			else
-				/usr/lib/suspend/resume -P 'splash = n' "${suspend_resume_device}"
+				/usr/lib/suspend/resume -P 'splash = n' "${suspend_real_device}"
 			fi
 		fi
 
 		if [ -f /sys/power/resume ]; then
-			#echo "Trying to resume with kernel-space tools from ${suspend_resume_device}"
-			local devnumber=$(suspend_getdevnumber ${suspend_resume_device})
+			#echo "Trying to resume with kernel-space tools from ${suspend_real_device}"
+			local devnumber=$(suspend_getdevnumber ${suspend_real_device})
 			echo "$devnumber" > /sys/power/resume
 		fi
 	fi

@@ -72,6 +72,7 @@ common_hook_install_base() {
 	make_symlink "busybox" "${basedir}/bin/ls"
 	make_symlink "busybox" "${basedir}/bin/ln"
 	make_symlink "busybox" "${basedir}/bin/echo"
+	make_symlink "busybox" "${basedir}/bin/findfs"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/seq"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/expr"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/["

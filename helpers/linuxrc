@@ -28,22 +28,27 @@ hook_run
 hook_post
 
 # mount root
-mount -r $root /mnt
+root_name="$(findfs "$(eval echo "$root")")"
 
-hook_deinit
+if [ -n "${root_name}" ] ; then
+	mount -r "${root_name}" /mnt
 
-cmdline="$(/bin/cat /proc/cmdline)"
+	hook_deinit
 
-umount_all
+	cmdline="$(/bin/cat /proc/cmdline)"
 
-# mount helper filesystems
-mount -t devtmpfs none /mnt/dev
-mount -t proc none /mnt/proc
-mount -t sysfs none /mnt/sys
-exec switch_root /mnt /sbin/init $cmdline
+	umount_all
 
-# switch_root failed, failsafe mode
-mount_all
+	# mount helper filesystems
+	mount -t devtmpfs none /mnt/dev
+	mount -t proc none /mnt/proc
+	mount -t sysfs none /mnt/sys
+	exec switch_root /mnt /sbin/init $cmdline
+
+	# switch_root failed, failsafe mode
+	mount_all
+fi
+
 # go interactive mode
 set_verbosity 1
 exec /bin/sh
