@@ -86,4 +86,37 @@ copy_executable()
 	make_executable "$where"
 }
 
+compress_file()
+{
+	local from=$1
+	local where=$2
+	local compression_type=$3
+
+	case "${compression_type}" in
+		gzip)
+			gzip -9 < "${from}" > "${where}"
+			;;
+		bzip2)
+			bzip2 -9 < "${from}" > "${where}"
+			;;
+		lzma)
+			lzma -9 < "${from}" > "${where}"
+			;;
+		xz)
+			xz -9 < "${from}" > "${where}"
+			;;
+		lzo)
+			lzop -9 < "${from}" > "${where}"
+			;;
+		lz4)
+			lzop -16 < "${from}" > "${where}"
+			;;
+		*)
+			cp "${from}" "${where}"
+			;;
+	esac
+
+	rm "${from}"
+}
+
 helper_copy_verbose=0

@@ -19,10 +19,34 @@
 #
 
 configdir="/etc/dt-init-scripts"
+libexecdir="/usr/libexec/dt-init-scripts"
 bootdir="/boot"
 
+. "${libexecdir}/functions/common"
+
+compression=
+
+while read -r line ; do
+	if [ ! -z "$line" ] ; then
+		case $line in
+			compression=\"*\")
+				compression="$(echo $line | sed -e 's|^compression="||' -e 's|\"$||')"
+				;;
+		esac
+	fi
+done < "${configdir}/dt-init-scripts.conf"
+
 if [ -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] ; then
+	TMPFILE=$(mktemp)
+	TMPFILE2=$(mktemp)
+
 	BOOTFILE=initramfs-bootsplash-$(cat "${configdir}/splash-theme.conf")
-	splash_geninitramfs --res=$(cat "${configdir}/splash-res.conf") -g "${bootdir}/${BOOTFILE}" $(cat "${configdir}/splash-theme.conf") -v
+	splash_geninitramfs --res=$(cat "${configdir}/splash-res.conf") -g "${TMPFILE}" $(cat "${configdir}/splash-theme.conf") -v
+
+	gunzip < "${TMPFILE}" > "${TMPFILE2}"
+	rm "${TMPFILE}"
+
+	compress_file "${TMPFILE2}" "${bootdir}/${BOOTFILE}" "$compression"
+
 	ln -svf ${BOOTFILE} "${bootdir}/initramfs"
 fi

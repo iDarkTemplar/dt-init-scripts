@@ -29,14 +29,19 @@ helper_copy_verbose=1
 
 TMPDIR=$(mktemp -d)
 TMPFILE=$(mktemp)
+TMPFILE2=$(mktemp)
 
 hooks=
+compression=
 
 while read -r line ; do
 	if [ ! -z "$line" ] ; then
 		case $line in
 			initrd_hooks=\"*\")
 				hooks="$(echo $line | sed -e 's|^initrd_hooks="||' -e 's|\"$||')"
+				;;
+			compression=\"*\")
+				compression="$(echo $line | sed -e 's|^compression="||' -e 's|\"$||')"
 				;;
 		esac
 	fi
@@ -104,7 +109,11 @@ else
 	BOOTFILE=initramfs-nobootsplash
 fi
 
-mv -vf ${TMPFILE} "${bootdir}/${BOOTFILE}"
+gunzip < "${TMPFILE}" > "${TMPFILE2}"
+rm "${TMPFILE}"
+
+compress_file "${TMPFILE2}" "${bootdir}/${BOOTFILE}" "$compression"
+
 ln -svf ${BOOTFILE} "${bootdir}/initramfs"
 
 rm -rf ${TMPDIR}
