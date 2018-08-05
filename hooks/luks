@@ -68,6 +68,7 @@ hook_run_luks() {
 	fi
 
 	# decrypt
+	export GPG_TTY=$(tty)
 	/usr/bin/gpg --quiet --decrypt-files ${filenames_encrypted} 2>/dev/null
 
 	# go non-interactive
