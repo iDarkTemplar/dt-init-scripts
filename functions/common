@@ -119,4 +119,61 @@ compress_file()
 	rm "${from}"
 }
 
+add_microcode()
+{
+	local file=$1
+	local microcode_type=$2
+	local has_microcode=0
+
+	local microcodedst="kernel/x86/microcode"
+	local microcode_files_intel="/lib/firmware/intel-ucode/*"
+	local microcode_files_amd="/lib/firmware/amd-ucode/*.bin"
+
+	local microcodedir=$(mktemp -d)
+	mkdir -p "${microcodedir}/${microcodedst}"
+
+	case "${microcode_type}" in
+		all)
+			if stat ${microcode_files_intel} &>/dev/null ; then
+				cat ${microcode_files_intel} > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
+				has_microcode=1
+			fi
+			if stat ${microcode_files_amd} &>/dev/null ; then
+				cat ${microcode_files_amd} > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
+				has_microcode=1
+			fi
+			;;
+		intel)
+			if stat ${microcode_files_intel} &>/dev/null ; then
+				cat ${microcode_files_intel} > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
+				has_microcode=1
+			fi
+			;;
+		amd)
+			if stat ${microcode_files_amd} &>/dev/null ; then
+				cat ${microcode_files_amd} > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
+				has_microcode=1
+			fi
+			;;
+		*)
+			;;
+	esac
+
+	if [ ${has_microcode} -eq 1 ] ; then
+		local microcodetmpfile=$(mktemp)
+		local oldfile=$(mktemp)
+
+		pushd "${microcodedir}" &>/dev/null
+		find . | cpio -o -H newc > "${microcodetmpfile}"
+		popd &>/dev/null
+
+		mv "${file}" "${oldfile}"
+		cat "${microcodetmpfile}" "${oldfile}" > "${file}"
+
+		rm "${microcodetmpfile}" "${oldfile}"
+	fi
+
+	rm -rf ${microcodedir}
+}
+
 helper_copy_verbose=0

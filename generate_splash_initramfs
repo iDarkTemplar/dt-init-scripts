@@ -25,12 +25,16 @@ bootdir="/boot"
 . "${libexecdir}/functions/common"
 
 compression=
+microcode=
 
 while read -r line ; do
 	if [ ! -z "$line" ] ; then
 		case $line in
 			compression=\"*\")
 				compression="$(echo $line | sed -e 's|^compression="||' -e 's|\"$||')"
+				;;
+			microcode=\"*\")
+				microcode="$(echo $line | sed -e 's|^microcode="||' -e 's|\"$||')"
 				;;
 		esac
 	fi
@@ -47,6 +51,8 @@ if [ -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] 
 	rm "${TMPFILE}"
 
 	compress_file "${TMPFILE2}" "${bootdir}/${BOOTFILE}" "$compression"
+
+	add_microcode "${bootdir}/${BOOTFILE}" "${microcode}"
 
 	ln -svf ${BOOTFILE} "${bootdir}/initramfs"
 fi

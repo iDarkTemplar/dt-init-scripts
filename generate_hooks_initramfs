@@ -33,6 +33,7 @@ TMPFILE2=$(mktemp)
 
 hooks=
 compression=
+microcode=
 
 while read -r line ; do
 	if [ ! -z "$line" ] ; then
@@ -42,6 +43,9 @@ while read -r line ; do
 				;;
 			compression=\"*\")
 				compression="$(echo $line | sed -e 's|^compression="||' -e 's|\"$||')"
+				;;
+			microcode=\"*\")
+				microcode="$(echo $line | sed -e 's|^microcode="||' -e 's|\"$||')"
 				;;
 		esac
 	fi
@@ -98,8 +102,9 @@ done
 mkdir -p ${TMPDIR}/etc
 echo initrd_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
 
-cd ${TMPDIR}
+pushd ${TMPDIR} &>/dev/null
 find . -print | cpio -o -H newc | gzip -9 > ${TMPFILE}
+popd &>/dev/null
 chmod 644 ${TMPFILE}
 
 if [ -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] ; then
@@ -113,6 +118,8 @@ gunzip < "${TMPFILE}" > "${TMPFILE2}"
 rm "${TMPFILE}"
 
 compress_file "${TMPFILE2}" "${bootdir}/${BOOTFILE}" "$compression"
+
+add_microcode "${bootdir}/${BOOTFILE}" "${microcode}"
 
 ln -svf ${BOOTFILE} "${bootdir}/initramfs"
 
