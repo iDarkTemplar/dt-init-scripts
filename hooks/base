@@ -39,6 +39,8 @@ hook_run_base() {
 		echo /sbin/mdev > /proc/sys/kernel/hotplug
 	fi
 
+	exec </dev/console >/dev/console 2>&1
+
 	return 0
 }
 

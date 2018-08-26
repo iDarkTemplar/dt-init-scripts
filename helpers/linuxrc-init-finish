@@ -35,16 +35,11 @@ if [ -n "${root_name}" ] ; then
 
 	cmdline="$(/bin/cat /proc/cmdline)"
 
-	umount_all
-
 	# mount helper filesystems
 	mount -t devtmpfs none /mnt/dev
 	mount -t proc none /mnt/proc
 	mount -t sysfs none /mnt/sys
 	exec switch_root /mnt /sbin/init $cmdline
-
-	# switch_root failed, failsafe mode
-	mount_all
 fi
 
 # go interactive mode
