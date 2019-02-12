@@ -109,7 +109,7 @@ compress_file()
 			lzop -9 < "${from}" > "${where}"
 			;;
 		lz4)
-			lzop -16 < "${from}" > "${where}"
+			lz4 -l -9 < "${from}" > "${where}"
 			;;
 		*)
 			cp "${from}" "${where}"
