@@ -24,3 +24,5 @@ hook_get
 hook_load
 hook_parse_args
 hook_run
+
+set_verbosity 1
