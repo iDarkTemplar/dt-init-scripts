@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 		break;
 
 	case act_set_verbose:
-		if (fbsplash_is_silent())
+		if (fbsplash_is_silent() && theme)
 		{
 			fbsplashr_tty_silent_cleanup();
 			fbsplash_set_verbose(0);
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 		break;
 
 	case act_set_silent:
-		if (!fbsplash_is_silent())
+		if ((!fbsplash_is_silent()) && theme)
 		{
 			fbsplash_set_silent();
 			fbsplashr_tty_silent_init(true);
