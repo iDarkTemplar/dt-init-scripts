@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# Copyright (C) 2019 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# parameters: $1 - hook-specific options
+hook_parse_args_rngd() {
+	local params=$1
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			random-step=*)
+				rngd_opts="${rngd_opts} --${param}"
+				;;
+			no-tpm)
+				rngd_opts="${rngd_opts} --no-tpm=1"
+				;;
+			no-drng)
+				rngd_opts="${rngd_opts} --no-drng=1"
+				;;
+			fill-watermark=*)
+				rngd_opts="${rngd_opts} --${param}"
+				;;
+			rng-device=*)
+				rngd_opts="${rngd_opts} --${param}"
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+}
+
+hook_run_rngd() {
+	/usr/sbin/rngd --background --pid-file=/tmp/rngd.pid ${rngd_opts} &>/dev/null
+
+	return 0
+}
+
+hook_post_rngd() {
+	kill -SIGKILL $(cat /tmp/rngd.pid)
+}
+
+rngd_opts=

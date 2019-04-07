@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# Copyright (C) 2019 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# options:
+# random-step=$int
+#	Number of bytes written to random device at a time
+#	optional parameter
+# no-tpm
+#	optional parameter, if set, disables using tpm as source of random number input
+# no-drng
+#	optional parameter, if set, disables using drng as source of random number input
+# fill-watermark=$int
+#	If set, feed entropy until at least specified amount of bits is available
+#	optional parameter
+# rng-device=$path
+#	Kernel device used for random number input
+#	optional parameter
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_install_rngd() {
+	local basedir=$1
+	local params=$2
+
+	mkdir -p "${basedir}/usr/sbin"
+	mkdir -p "${basedir}/etc/hooks"
+
+	copy_executable "/usr/sbin/rngd" "${basedir}/usr/sbin/rngd" "${basedir}"
+
+	copy_executable "${sharedir}/hooks/rngd" "${basedir}/etc/hooks/rngd" "${basedir}"
+}
