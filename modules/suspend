@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+# Copyright (C) 2017-2020 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
 # This file is part of DT init scripts.
 #
@@ -43,15 +43,15 @@ hook_install_suspend() {
 
 	mkdir -p "${basedir}/etc"
 
-	if [ $(uname -m) = "x86_64" ] ; then
-		mkdir -p "${basedir}/lib64"
-		mkdir -p "${basedir}/usr/lib64"
-		make_symlink "lib64" "${basedir}/lib"
-		make_symlink "lib64" "${basedir}/usr/lib"
-	else
-		mkdir -p "${basedir}/lib"
-		mkdir -p "${basedir}/usr/lib"
-	fi
+	for libdir in /lib* /usr/lib* ; do
+		if [[ "$libdir" != */libexec ]] ; then
+			if [ -L "$libdir" ] ; then
+				make_symlink "$(readlink "$libdir")" "${basedir}/${libdir}"
+			else
+				mkdir -p "${basedir}/${libdir}"
+			fi
+		fi
+	done
 
 	# userspace suspend support
 	if [ -x "/usr/lib/suspend/resume" ] ; then
