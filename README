@@ -5,6 +5,7 @@ It's also a set of scripts for opposite task: shutdown with proper deinitializat
 
 Currently implemented hooks providing support for:
 	- fbsplash
+	- plymouth
 	- rngd
 	- luks
 	- suspend

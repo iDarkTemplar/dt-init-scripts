@@ -23,18 +23,14 @@ sharedir="/usr/share/dt-init-scripts"
 libexecdir="/usr/libexec/dt-init-scripts"
 
 . "${libexecdir}/functions/common"
+. "${sharedir}/helpers/linuxrc-config"
 
 hooks=
 
-while read -r line ; do
-	if [ ! -z "$line" ] ; then
-		case $line in
-			shutdown_hooks=\"*\")
-				hooks="$(echo $line | sed -e 's|^shutdown_hooks="||' -e 's|\"$||')"
-				;;
-		esac
-	fi
-done < "${configdir}/dt-init-scripts.conf"
+hook_get_shutdown
+hook_load_shutdown
+hook_parse_args
+hook_init_shutdown
 
 mkdir /run/dt-init-scripts-shutdown
 mount -t tmpfs none /run/dt-init-scripts-shutdown
@@ -54,6 +50,8 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 		hook_shutdown_check_params_${basehook} "${hookopts}"
 	fi
 done
+
+splash_message "Preparing shutdown initramfs"
 
 # then install shutdown hook
 for hook in $(echo $hooks | sed -e 's|,| |g') ; do
@@ -92,8 +90,18 @@ echo shutdown_hooks=\"${hookoptsline}\" > "/run/dt-init-scripts-shutdown/${confi
 mount --rbind /dev /run/dt-init-scripts-shutdown/dev
 mount --rbind /sys /run/dt-init-scripts-shutdown/sys
 mount --rbind /proc /run/dt-init-scripts-shutdown/proc
+mount --rbind /run /run/dt-init-scripts-shutdown/run
+
+splash_message "Running shutdown initramfs"
+
+hook_prepare_shutdown
 
 cd /run/dt-init-scripts-shutdown
 pivot_root . oldroot
 exec chroot . /bin/shutdown-newroot-run $@ </dev/console >/dev/console 2>&1
+
+# go interactive mode
+set_verbosity 1
+hook_finish
+
 exec /bin/sh </dev/console >/dev/console 2>&1

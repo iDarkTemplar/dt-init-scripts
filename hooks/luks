@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+# Copyright (C) 2017-2020 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
 # This file is part of DT init scripts.
 #
@@ -62,18 +62,23 @@ hook_run_luks() {
 		filenames_encrypted="${filenames_encrypted} /root/$(eval echo \$luks_mtab_key_files_$i).gpg"
 	done
 
-	# go interactive
-	if type -t set_verbosity >/dev/null ; then
-		set_verbosity 1
-	fi
+	if [ -x /bin/plymouth ] ; then
+		# decrypt
+		/bin/plymouth ask-for-password --command="/usr/bin/gpg --passphrase-fd 0 --batch --no-tty --quiet --decrypt-files ${filenames_encrypted}" 2>/dev/null
+	else
+		# go interactive
+		if type -t set_verbosity >/dev/null ; then
+			set_verbosity 1
+		fi
 
-	# decrypt
-	export GPG_TTY=$(tty)
-	/usr/bin/gpg --quiet --decrypt-files ${filenames_encrypted} 2>/dev/null
+		# decrypt
+		export GPG_TTY=$(tty)
+		/usr/bin/gpg --quiet --decrypt-files ${filenames_encrypted} 2>/dev/null
 
-	# go non-interactive
-	if type -t set_verbosity >/dev/null ; then
-		set_verbosity 0
+		# go non-interactive
+		if type -t set_verbosity >/dev/null ; then
+			set_verbosity 0
+		fi
 	fi
 
 	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do

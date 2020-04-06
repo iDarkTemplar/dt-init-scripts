@@ -30,6 +30,7 @@ $@
 
 # go interactive mode
 set_verbosity 1
+hook_finish
 
 # fallback
 exec /bin/sh

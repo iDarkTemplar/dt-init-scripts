@@ -19,15 +19,27 @@
 #
 
 mount_all() {
-	mount -t proc none /proc
-	mount -t sysfs none /sys
+	mount -t proc none /proc -o noexec,nosuid,nodev
+	mount -t sysfs none /sys -o noexec,nosuid,nodev
 	mount -t devtmpfs none /dev
+	mkdir -m 0755 /dev/pts
+	mount devpts /dev/pts -t devpts -o mode=0620
+	mount -t tmpfs none /run -o rw,nosuid,nodev,relatime,mode=0755
 }
 
 umount_all() {
 	umount -l /proc
 	umount -l /sys
 	umount -l /dev
+	umount -l /run
+}
+
+move_mounts_to_chroot() {
+	for fs in /run /dev /sys /proc ; do
+		local chroot_dir="/mnt${fs}"
+		[ ! -e "${chroot_dir}" ] &&  mkdir -p "${chroot_dir}"
+		mount --move $fs "${chroot_dir}"
+	done
 }
 
 hook_get() {
@@ -58,7 +70,7 @@ hook_load() {
 		if [ -e "/etc/hooks/${basehook}" ] ; then
 			. "/etc/hooks/${basehook}"
 		fi
-done
+	done
 }
 
 hook_parse_args() {
@@ -83,11 +95,23 @@ hook_run() {
 				# hook failed, deinit and exec to shell
 				if [ $$ -eq 1 ] ; then
 					set_verbosity 1
+					hook_finish
 					exec /bin/sh
 				else
 					return 1
 				fi
 			fi
+		fi
+	done
+}
+
+hook_finish() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_finish_${basehook} >/dev/null ; then
+			hook_finish_${basehook} "${hookopts}"
 		fi
 	done
 }
@@ -126,6 +150,39 @@ hook_get_shutdown() {
 	done < "${configdir}/dt-init-scripts.conf"
 }
 
+hook_load_shutdown() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if [ -e "${sharedir}/hooks/${basehook}" ] ; then
+			. "${sharedir}/hooks/${basehook}"
+		fi
+	done
+}
+
+hook_init_shutdown() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_init_shutdown_${basehook} >/dev/null ; then
+			hook_init_shutdown_${basehook} "${hookopts}"
+		fi
+	done
+}
+
+hook_prepare_shutdown() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_prepare_shutdown_${basehook} >/dev/null ; then
+			hook_prepare_shutdown_${basehook} "${hookopts}"
+		fi
+	done
+}
+
 hook_shutdown() {
 	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 		basehook="$(echo $hook | cut -d: -f 1)"
@@ -150,5 +207,27 @@ set_verbosity() {
 	done
 }
 
+splash_message() {
+	local message="$1"
+	local message_sent=0
+
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_splash_message_${basehook} >/dev/null ; then
+			message_sent=1
+			hook_splash_message_${basehook} "$message" "${hookopts}"
+		fi
+	done
+
+	if [ ${message_sent} -eq 0 ] ; then
+		echo "${message}"
+	fi
+}
+
 configdir="/etc/dt-init-scripts"
+sharedir="/usr/share/dt-init-scripts"
+libexecdir="/usr/libexec/dt-init-scripts"
+bootdir="/boot"
 hooks=

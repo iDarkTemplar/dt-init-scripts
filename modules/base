@@ -33,6 +33,7 @@ common_hook_install_base() {
 	mkdir -p "${basedir}/etc"
 	mkdir -p "${basedir}/mnt"
 	mkdir -p "${basedir}/tmp"
+	mkdir -p "${basedir}/run"
 	mkdir -p "${basedir}/etc/hooks"
 	mkdir -p "${basedir}/etc/helpers"
 
@@ -73,6 +74,7 @@ common_hook_install_base() {
 	make_symlink "busybox" "${basedir}/bin/ln"
 	make_symlink "busybox" "${basedir}/bin/echo"
 	make_symlink "busybox" "${basedir}/bin/findfs"
+	make_symlink "busybox" "${basedir}/bin/cut"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/seq"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/expr"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/["

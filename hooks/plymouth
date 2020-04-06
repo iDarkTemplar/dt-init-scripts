@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Copyright (C) 2020 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+hook_set_verbosity_plymouth() {
+	local verbose=$1
+
+	if [ $verbose -eq 0 ] ; then
+		/bin/plymouth show-splash
+	else
+		/bin/plymouth hide-splash
+	fi
+}
+
+hook_splash_message_plymouth() {
+	local message="$1"
+	/bin/plymouth display-message --text="$message"
+}
+
+hook_run_plymouth() {
+	mkdir -p /run/plymouth
+	/sbin/plymouthd --attach-to-session --pid-file /run/plymouth/pid
+	/bin/plymouth show-splash
+}
+
+hook_deinit_plymouth() {
+	/bin/plymouth update-root-fs --new-root-dir=/mnt
+}
+
+hook_init_shutdown_plymouth() {
+	mkdir -p /run/plymouth
+	/sbin/plymouthd --attach-to-session --pid-file /run/plymouth/pid
+	/bin/plymouth show-splash
+}
+
+hook_prepare_shutdown_plymouth() {
+	/bin/plymouth update-root-fs --new-root-dir=/run/dt-init-scripts-shutdown
+}
+
+hook_finish_plymouth() {
+	/bin/plymouth quit
+}

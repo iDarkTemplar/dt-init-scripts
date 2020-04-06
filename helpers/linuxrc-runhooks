@@ -26,3 +26,4 @@ hook_parse_args
 hook_run
 
 set_verbosity 1
+hook_finish

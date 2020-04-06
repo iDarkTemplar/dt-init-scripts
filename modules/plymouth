@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Copyright (C) 2020 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# $1 = initramfs root, $2 - parameters (optional)
+common_hook_install_plymouth() {
+	local basedir=$1
+
+	mkdir -p "${basedir}/etc/plymouth"
+	mkdir -p "${basedir}/bin"
+	mkdir -p "${basedir}/sbin"
+	mkdir -p "${basedir}/usr/bin"
+	mkdir -p "${basedir}/usr/sbin"
+	mkdir -p "${basedir}/usr/share/plymouth/themes"
+
+	for libdir in /lib* /usr/lib* ; do
+		if [[ "$libdir" != */libexec ]] ; then
+			if [ -L "$libdir" ] ; then
+				make_symlink "$(readlink "$libdir")" "${basedir}/${libdir}"
+			else
+				mkdir -p "${basedir}/${libdir}"
+			fi
+		fi
+	done
+
+	copy "/etc/plymouth/plymouthd.conf" "${basedir}/etc/plymouth/plymouthd.conf" "${basedir}"
+
+	for file in /usr/lib*/libply-boot-client.so /usr/lib*/libply-splash-core.so /usr/lib*/libply-splash-graphics.so /usr/lib*/libply.so ; do
+		if [ ! -e "${basedir}/${file}" ] ; then
+			copy_executable "${file}" "${basedir}/${file}" "${basedir}"
+		fi
+	done
+
+	for file in $(find /usr/lib*/plymouth -name '*.so') ; do
+		if [ ! -e "${basedir}/${file}" ] ; then
+			copy_executable "${file}" "${basedir}/${file}" "${basedir}"
+		fi
+	done
+
+	copy_executable "/bin/plymouth" "${basedir}/bin/plymouth" "${basedir}"
+	copy_executable "/sbin/plymouthd" "${basedir}/sbin/plymouthd" "${basedir}"
+
+	copy "/usr/share/plymouth/bizcom.png" "${basedir}/usr/share/plymouth/bizcom.png" "${basedir}"
+	copy "/usr/share/plymouth/plymouthd.defaults" "${basedir}/usr/share/plymouth/plymouthd.defaults" "${basedir}"
+
+	for theme in details fade-in glow script solar spinfinity spinner text tribar $(plymouth-set-default-theme) ; do
+		copy "/usr/share/plymouth/themes/${theme}" "${basedir}/usr/share/plymouth/themes/" "${basedir}"
+	done
+
+	copy_executable "${sharedir}/hooks/plymouth" "${basedir}/etc/hooks/plymouth" "${basedir}"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_install_plymouth() {
+	local basedir=$1
+	local params=$2
+
+	common_hook_install_plymouth $basedir $params
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_shutdown_install_plymouth() {
+	local basedir=$1
+	local params=$2
+
+	common_hook_install_plymouth $basedir $params
+}
