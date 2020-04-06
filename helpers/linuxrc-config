@@ -81,8 +81,12 @@ hook_run() {
 			hook_run_${basehook} "${hookopts}"
 			if [ $? -ne 0 ] ; then
 				# hook failed, deinit and exec to shell
-				set_verbosity 1
-				exec /bin/sh
+				if [ $$ -eq 1 ] ; then
+					set_verbosity 1
+					exec /bin/sh
+				else
+					return 1
+				fi
 			fi
 		fi
 	done
