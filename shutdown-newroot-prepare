@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+# Copyright (C) 2017-2020 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
 # This file is part of DT init scripts.
 #
@@ -36,11 +36,8 @@ while read -r line ; do
 	fi
 done < "${configdir}/dt-init-scripts.conf"
 
-mount -t tmpfs none /tmp
-
-TMPDIR=$(mktemp -d)
-
-mount -t tmpfs none ${TMPDIR}
+mkdir /run/dt-init-scripts-shutdown
+mount -t tmpfs none /run/dt-init-scripts-shutdown
 
 # first check options and ensure required functions are provided
 for hook in $(echo $hooks | sed -e 's|,| |g') ; do
@@ -63,7 +60,7 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	basehook="$(echo $hook | cut -d: -f 1)"
 	hookopts="$(echo $hook | cut -d: -f 2- -s)"
 
-	hook_shutdown_install_${basehook} "${TMPDIR}" "${hookopts}"
+	hook_shutdown_install_${basehook} "/run/dt-init-scripts-shutdown" "${hookopts}"
 done
 
 # and now write options
@@ -90,13 +87,13 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	fi
 done
 
-echo shutdown_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
+echo shutdown_hooks=\"${hookoptsline}\" > "/run/dt-init-scripts-shutdown/${configdir}/dt-init-scripts.conf"
 
-mount --rbind /dev ${TMPDIR}/dev
-mount --rbind /sys ${TMPDIR}/sys
-mount --rbind /proc ${TMPDIR}/proc
+mount --rbind /dev /run/dt-init-scripts-shutdown/dev
+mount --rbind /sys /run/dt-init-scripts-shutdown/sys
+mount --rbind /proc /run/dt-init-scripts-shutdown/proc
 
-cd ${TMPDIR}
+cd /run/dt-init-scripts-shutdown
 pivot_root . oldroot
 exec chroot . /bin/shutdown-newroot-run $@ </dev/console >/dev/console 2>&1
 exec /bin/sh </dev/console >/dev/console 2>&1
