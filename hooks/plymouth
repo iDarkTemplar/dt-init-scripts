@@ -35,7 +35,7 @@ hook_splash_message_plymouth() {
 
 hook_run_plymouth() {
 	mkdir -p /run/plymouth
-	/sbin/plymouthd --attach-to-session --pid-file /run/plymouth/pid
+	/sbin/plymouthd --attach-to-session --pid-file /run/plymouth/pid --mode=boot
 	/bin/plymouth show-splash
 }
 
@@ -45,7 +45,17 @@ hook_deinit_plymouth() {
 
 hook_init_shutdown_plymouth() {
 	mkdir -p /run/plymouth
-	/sbin/plymouthd --attach-to-session --pid-file /run/plymouth/pid
+	/bin/plymouth quit --retain-splash
+	/bin/plymouth --wait
+	/sbin/plymouthd --attach-to-session --pid-file /run/plymouth/pid --mode=shutdown
+	/bin/plymouth show-splash
+}
+
+hook_reinit_shutdown_plymouth() {
+	mkdir -p /run/plymouth
+	/bin/plymouth quit --retain-splash
+	/bin/plymouth --wait
+	/sbin/plymouthd --pid-file /run/plymouth/pid --mode=shutdown
 	/bin/plymouth show-splash
 }
 
@@ -55,4 +65,5 @@ hook_prepare_shutdown_plymouth() {
 
 hook_finish_plymouth() {
 	/bin/plymouth quit
+	/bin/plymouth --wait
 }

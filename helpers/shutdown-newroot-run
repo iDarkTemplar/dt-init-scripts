@@ -23,6 +23,7 @@
 hook_get_shutdown
 hook_load
 hook_parse_args
+hook_reinit_shutdown
 hook_shutdown
 
 # shutdown or reboot here

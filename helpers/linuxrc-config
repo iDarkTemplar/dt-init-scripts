@@ -172,6 +172,17 @@ hook_init_shutdown() {
 	done
 }
 
+hook_reinit_shutdown() {
+	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
+		basehook="$(echo $hook | cut -d: -f 1)"
+		hookopts="$(echo $hook | cut -d: -f 2- -s)"
+
+		if type -t hook_reinit_shutdown_${basehook} >/dev/null ; then
+			hook_reinit_shutdown_${basehook} "${hookopts}"
+		fi
+	done
+}
+
 hook_prepare_shutdown() {
 	for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 		basehook="$(echo $hook | cut -d: -f 1)"
