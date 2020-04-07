@@ -64,7 +64,7 @@ hook_run_luks() {
 
 	if [ -x /bin/plymouth ] ; then
 		# decrypt
-		/bin/plymouth ask-for-password --command="/usr/bin/gpg --passphrase-fd 0 --batch --no-tty --quiet --decrypt-files ${filenames_encrypted}" 2>/dev/null
+		/bin/plymouth ask-for-password --number-of-tries=3 --command="/usr/bin/gpg --passphrase-fd 0 --batch --no-tty --quiet --decrypt-files ${filenames_encrypted}" 2>/dev/null
 	else
 		# go interactive
 		if type -t set_verbosity >/dev/null ; then
