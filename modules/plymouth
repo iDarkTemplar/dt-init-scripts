@@ -63,6 +63,13 @@ common_hook_install_plymouth() {
 		copy "/usr/share/plymouth/themes/${theme}" "${basedir}/usr/share/plymouth/themes/" "${basedir}"
 	done
 
+	copy "/etc/fonts" "${basedir}/etc" "${basedir}"
+
+	for style in Regular Bold Italic 'Bold Italic' ; do
+		local fontfile=$(fc-match ": style=$style" --format='%{file}\n')
+		copy "${fontfile}" "${basedir}/${fontfile}" "${basedir}"
+	done
+
 	copy_executable "${sharedir}/hooks/plymouth" "${basedir}/etc/hooks/plymouth" "${basedir}"
 }
 
