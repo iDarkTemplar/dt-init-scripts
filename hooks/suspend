@@ -59,9 +59,15 @@ hook_post_suspend() {
 	if [ -n "${suspend_real_device}" -a ${suspend_enabled} = 1 ]; then
 
 		if [ -x /usr/lib/suspend/resume ]; then
-			#echo "Trying to resume with userspace tools from ${suspend_real_device}"
+			local resume_use_splash=0
 
-			if [ $(splash_is_enabled) = 1 -a $(splash_is_verbose) = 1 ] ; then
+			if [ -n "${fbsplash_theme}" -a -n "${fbsplash_silent}" ] ; then
+				if [ ${fbsplash_silent} -eq 1 ] ; then
+					resume_use_splash=1
+				fi
+			fi
+
+			if [ $(resume_use_splash) -eq 1 ] ; then
 				/usr/lib/suspend/resume -P 'splash = y' "${suspend_real_device}"
 			else
 				/usr/lib/suspend/resume -P 'splash = n' "${suspend_real_device}"
@@ -69,7 +75,6 @@ hook_post_suspend() {
 		fi
 
 		if [ -f /sys/power/resume ]; then
-			#echo "Trying to resume with kernel-space tools from ${suspend_real_device}"
 			local devnumber=$(suspend_getdevnumber ${suspend_real_device})
 			echo "$devnumber" > /sys/power/resume
 		fi
