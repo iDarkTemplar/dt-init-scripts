@@ -23,7 +23,7 @@ mount_all() {
 	mount -t sysfs none /sys -o noexec,nosuid,nodev
 	mount -t devtmpfs none /dev
 	mkdir -m 0755 /dev/pts
-	mount devpts /dev/pts -t devpts -o mode=0620
+	mount devpts /dev/pts -t devpts -o gid=5,mode=0620
 	mount -t tmpfs none /run -o rw,nosuid,nodev,relatime,mode=0755
 }
 
