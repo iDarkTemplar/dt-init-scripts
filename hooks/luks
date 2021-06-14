@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2017-2020 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+# Copyright (C) 2017-2021 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
 # This file is part of DT init scripts.
 #
@@ -57,12 +57,17 @@ hook_run_luks() {
 	local filenames_encrypted=""
 	local decrypted_everything=1
 	local device_name=""
+	local use_plymouth=0
 
 	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
 		filenames_encrypted="${filenames_encrypted} /root/$(eval echo \$luks_mtab_key_files_$i).gpg"
 	done
 
 	if [ -x /bin/plymouth ] ; then
+		/bin/plymouth --ping && use_plymouth=1
+	fi
+
+	if [ ${use_plymouth} -eq 1 ] ; then
 		# decrypt
 		/bin/plymouth ask-for-password --number-of-tries=3 --prompt="Unlock luks devices" --command="/usr/bin/gpg --passphrase-fd 0 --batch --no-tty --quiet --decrypt-files ${filenames_encrypted}" 2>/dev/null
 	else
