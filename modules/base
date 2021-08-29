@@ -80,6 +80,10 @@ common_hook_install_base() {
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/["
 	make_symlink "/bin/busybox" "${basedir}/sbin/mdev"
 
+	copy "/etc/ld.so.conf" "${basedir}/etc/ld.so.conf" "${basedir}"
+	copy "/etc/ld.so.conf.d" "${basedir}/etc/ld.so.conf.d" "${basedir}"
+	copy "/etc/ld.so.cache" "${basedir}/etc/ld.so.cache" "${basedir}"
+
 	touch "${basedir}/etc/mtab"
 
 	copy_executable "${sharedir}/hooks/base" "${basedir}/etc/hooks/base" "${basedir}"
