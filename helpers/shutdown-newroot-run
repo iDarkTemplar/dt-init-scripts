@@ -20,6 +20,9 @@
 
 . /etc/helpers/linuxrc-config
 
+# udev is not running, remove remaining control file to ensure that cryptsetup doesn't hang forever waiting for it
+rm -f /run/udev/control
+
 hook_get_shutdown
 hook_load
 hook_parse_args
