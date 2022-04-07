@@ -84,6 +84,11 @@ common_hook_install_base() {
 	copy "/etc/ld.so.conf.d" "${basedir}/etc/ld.so.conf.d" "${basedir}"
 	copy "/etc/ld.so.cache" "${basedir}/etc/ld.so.cache" "${basedir}"
 
+	# copy pthread dependencies
+	for library in $(ldconfig -p | egrep '^\s*libgcc_s\.so\s|^\s*libgcc_s\.so\.\S*\s|^\s*libstdc\+\+\.so\s|^\s*libstdc\+\+\.so\.\S*\s|^\s*libatomic\.so\s|^\s*libatomic\.so\.\S*\s|^\s*libgomp\.so\s|^\s*libgomp\.so\.\S*\s' | rev | cut -d ' ' -f 1 | rev) ; do
+		copy "$library" "${basedir}/$library" "${basedir}"
+	done
+
 	touch "${basedir}/etc/mtab"
 
 	copy_executable "${sharedir}/hooks/base" "${basedir}/etc/hooks/base" "${basedir}"
