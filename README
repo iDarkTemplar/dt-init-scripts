@@ -4,7 +4,6 @@ It's initramfs script with hooks inspired by Archlinux.
 It's also a set of scripts for opposite task: shutdown with proper deinitialization of subsystems.
 
 Currently implemented hooks providing support for:
-	- fbsplash
 	- plymouth
 	- rngd
 	- luks

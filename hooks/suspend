@@ -59,19 +59,7 @@ hook_post_suspend() {
 	if [ -n "${suspend_real_device}" -a ${suspend_enabled} = 1 ]; then
 
 		if [ -x /usr/lib/suspend/resume ]; then
-			local resume_use_splash=0
-
-			if [ -n "${fbsplash_theme}" -a -n "${fbsplash_silent}" ] ; then
-				if [ ${fbsplash_silent} -eq 1 ] ; then
-					resume_use_splash=1
-				fi
-			fi
-
-			if [ $(resume_use_splash) -eq 1 ] ; then
-				/usr/lib/suspend/resume -P 'splash = y' "${suspend_real_device}"
-			else
-				/usr/lib/suspend/resume -P 'splash = n' "${suspend_real_device}"
-			fi
+			/usr/lib/suspend/resume -P 'splash = n' "${suspend_real_device}"
 		fi
 
 		if [ -f /sys/power/resume ]; then

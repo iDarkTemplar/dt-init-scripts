@@ -108,7 +108,6 @@ popd &>/dev/null
 chmod 644 ${TMPFILE}
 
 has_hook_plymouth=0
-has_hook_fbsplash=0
 
 for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	basehook="$(echo $hook | cut -d: -f 1)"
@@ -117,17 +116,10 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	if [ "${basehook}" = "plymouth" ] ; then
 		has_hook_plymouth=1
 	fi
-
-	if [ "${basehook}" = "fbsplash" ] ; then
-		has_hook_fbsplash=1
-	fi
 done
 
 if [ ${has_hook_plymouth} -eq 1 ] ; then
 	BOOTFILE=initramfs-plymouth
-elif [ ${has_hook_fbsplash} -eq 1 -a  -f "${configdir}/splash-res.conf" -a -f "${configdir}/splash-theme.conf" ] ; then
-	splash_geninitramfs --verbose --res $(cat "${configdir}/splash-res.conf") --append ${TMPFILE} $(cat "${configdir}/splash-theme.conf")
-	BOOTFILE=initramfs-bootsplash-$(cat "${configdir}/splash-theme.conf")
 else
 	BOOTFILE=initramfs-generic
 fi
