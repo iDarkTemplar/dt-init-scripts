@@ -99,7 +99,7 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	fi
 done
 
-mkdir -p ${TMPDIR}/etc
+mkdir -p "${TMPDIR}/${configdir}"
 echo initrd_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
 
 pushd ${TMPDIR} &>/dev/null
