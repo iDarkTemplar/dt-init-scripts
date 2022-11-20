@@ -1,0 +1,80 @@
+#!/bin/sh
+#
+# Copyright (C) 2022 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+helper_raid_read_mtab() {
+	local MTAB=$1
+
+	let raid_mtab_items_count=0
+
+	if [ ! -z "$MTAB" ]; then
+		while read -r line ; do
+			set -- $(echo $line | sed -e 's:#.*$::')
+
+			if [ ! -z "$1" ] && [ ! -z "$2" ] ; then
+				eval raid_mtab_names_${raid_mtab_items_count}="$1"
+				eval raid_mtab_devices_${raid_mtab_items_count}="$2"
+
+				shift
+				shift
+
+				while [ ! -z "$1" ] ; do
+					eval raid_mtab_devices_${raid_mtab_items_count}=\"$(eval echo \$raid_mtab_devices_${raid_mtab_items_count}) $1\"
+					shift
+				done
+
+				raid_mtab_items_count=$(expr ${raid_mtab_items_count} + 1)
+			fi
+		done < $MTAB
+	fi
+}
+
+# parameters: $1 - hook-specific options
+hook_parse_args_raid() {
+	local params=$1
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				raid_config_file=${param#configfile=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+}
+
+hook_run_raid() {
+	helper_raid_read_mtab "${raid_config_file}"
+
+	for i in $(seq 0 $(expr ${raid_mtab_items_count} - 1)) ; do
+		/sbin/mdadm --assemble "$(eval echo \$raid_mtab_names_$i)" $(eval echo \$raid_mtab_devices_$i)
+	done
+
+	return 0
+}
+
+hook_shutdown_raid() {
+	helper_raid_read_mtab "${raid_config_file}"
+
+	for i in $(seq 0 $(expr ${raid_mtab_items_count} - 1)) ; do
+		/sbin/mdadm --stop "$(eval echo \$raid_mtab_names_$i)"
+	done
+}
+
+raid_config_file=
