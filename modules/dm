@@ -1,0 +1,101 @@
+#!/bin/bash
+#
+# Copyright (C) 2022 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+#
+# This file is part of DT init scripts.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# options:
+# configfile=$path
+#	path to file containing description of device-mapped devices, each line is in format "device_path device_name"
+#	required parameter
+
+# $1 = parameters (optional)
+hook_check_params_dm() {
+	local params=$1
+	local configfile=
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	[ -f "${configfile}" ] || die "Hook \"dm\": configfile option doesn't point to existing file!"
+}
+
+hook_shutdown_check_params_dm() {
+	local params=$1
+	local configfile=
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+			# TODO: Notify about unsupported option?
+		esac
+	done
+
+	[ -f "${configfile}" ] || die "Hook \"dm\": configfile option doesn't point to existing file!"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+common_hook_install_dm() {
+	local basedir=$1
+	local params=$2
+	local configfile=
+
+	for param in $(echo $params | sed -e 's|:| |g') ; do
+		case $param in
+			configfile=*)
+				configfile=${param#configfile=}
+				;;
+		esac
+	done
+
+	mkdir -p "${basedir}/bin"
+	mkdir -p "${basedir}/usr/bin"
+	mkdir -p "${basedir}/sbin"
+	mkdir -p "${basedir}/usr/sbin"
+	mkdir -p "${basedir}/etc/hooks"
+
+	copy_executable "/sbin/integritysetup" "${basedir}/sbin/integritysetup" "${basedir}"
+
+	copy_executable "${sharedir}/hooks/dm" "${basedir}/etc/hooks/dm" "${basedir}"
+
+	copy "${configfile}" "${basedir}/${configfile}" "${basedir}"
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_install_dm() {
+	local basedir=$1
+	local params=$2
+	local configfile=
+
+	common_hook_install_dm $basedir $params
+}
+
+# $1 = initramfs root, $2 - parameters (optional)
+hook_shutdown_install_dm() {
+	local basedir=$1
+	local params=$2
+
+	common_hook_install_dm $basedir $params
+}
