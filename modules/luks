@@ -70,7 +70,6 @@ common_hook_install_luks() {
 	local basedir=$1
 	local params=$2
 	local configfile=
-	local keysdir="/boot"
 
 	for param in $(echo $params | sed -e 's|:| |g') ; do
 		case $param in
