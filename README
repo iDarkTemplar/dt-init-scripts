@@ -8,6 +8,8 @@ Currently implemented hooks providing support for:
 	- rngd
 	- luks
 	- suspend
+	- raid
+	- dm-integrity
 
 rngd module is disabled by default and may be used as source of entropy
 if luks module or some other entropy-using module is used.
