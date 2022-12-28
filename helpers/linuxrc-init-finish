@@ -20,6 +20,8 @@
 
 . /etc/helpers/linuxrc-config
 
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
 hook_get
 hook_load
 hook_parse_args

@@ -61,24 +61,50 @@ common_hook_install_base() {
 	copy_executable "/sbin/fsck.ext4" "${basedir}/sbin/fsck.ext4" "${basedir}"
 
 	make_symlink "busybox" "${basedir}/bin/cat"
-	make_symlink "busybox" "${basedir}/bin/sh"
-	make_symlink "busybox" "${basedir}/bin/rm"
-	make_symlink "busybox" "${basedir}/bin/switch_root"
 	make_symlink "busybox" "${basedir}/bin/chroot"
-	make_symlink "busybox" "${basedir}/bin/pivot_chroot"
-	make_symlink "busybox" "${basedir}/bin/sed"
-	make_symlink "busybox" "${basedir}/bin/grep"
-	make_symlink "busybox" "${basedir}/bin/mount"
-	make_symlink "busybox" "${basedir}/bin/umount"
-	make_symlink "busybox" "${basedir}/bin/ls"
-	make_symlink "busybox" "${basedir}/bin/ln"
+	make_symlink "busybox" "${basedir}/bin/cut"
+	make_symlink "busybox" "${basedir}/bin/dd"
 	make_symlink "busybox" "${basedir}/bin/echo"
 	make_symlink "busybox" "${basedir}/bin/findfs"
-	make_symlink "busybox" "${basedir}/bin/cut"
-	make_symlink "/bin/busybox" "${basedir}/usr/bin/seq"
+	make_symlink "busybox" "${basedir}/bin/grep"
+	make_symlink "busybox" "${basedir}/bin/ln"
+	make_symlink "busybox" "${basedir}/bin/ls"
+	make_symlink "busybox" "${basedir}/bin/mkdir"
+	make_symlink "busybox" "${basedir}/bin/mount"
+	make_symlink "busybox" "${basedir}/bin/mv"
+	make_symlink "busybox" "${basedir}/bin/pivot_chroot"
+	make_symlink "busybox" "${basedir}/bin/rm"
+	make_symlink "busybox" "${basedir}/bin/rmdir"
+	make_symlink "busybox" "${basedir}/bin/sed"
+	make_symlink "busybox" "${basedir}/bin/sh"
+	make_symlink "busybox" "${basedir}/bin/switch_root"
+	make_symlink "busybox" "${basedir}/bin/umount"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/dirname"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/expr"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/find"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/readlink"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/seq"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/strings"
+	make_symlink "/bin/busybox" "${basedir}/usr/bin/wc"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/["
 	make_symlink "/bin/busybox" "${basedir}/sbin/mdev"
+	make_symlink "/bin/busybox" "${basedir}/sbin/modprobe"
+
+	# copy mdev config and helpers
+	copy "/etc/mdev.conf" "${basedir}/etc/mdev.conf" "${basedir}"
+
+	for libdir in /lib /lib64  ; do
+		if [ ! -L "$libdir" ] ; then
+			if [ -d "${libdir}/mdev" ] ; then
+				mkdir -p "${basedir}/${libdir}/mdev"
+				for mdevexe in ${libdir}/mdev/* ; do
+					if [ -e "${mdevexe}" ] ; then
+						copy_executable "${mdevexe}" "${basedir}${mdevexe}" "${basedir}"
+					fi
+				done
+			fi
+		fi
+	done
 
 	copy "/etc/ld.so.conf" "${basedir}/etc/ld.so.conf" "${basedir}"
 	copy "/etc/ld.so.conf.d" "${basedir}/etc/ld.so.conf.d" "${basedir}"
