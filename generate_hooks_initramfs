@@ -29,7 +29,6 @@ helper_copy_verbose=1
 
 TMPDIR=$(mktemp -d)
 TMPFILE=$(mktemp)
-TMPFILE2=$(mktemp)
 
 hooks=
 compression=
@@ -159,9 +158,10 @@ mkdir -p "${TMPDIR}/${configdir}"
 echo initrd_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
 
 pushd ${TMPDIR} &>/dev/null
-find . -print | cpio -o -H newc | gzip -9 > ${TMPFILE}
+find . -print | cpio -o -H newc > ${TMPFILE}
 popd &>/dev/null
 chmod 644 ${TMPFILE}
+rm -rf ${TMPDIR}
 
 has_hook_plymouth=0
 
@@ -180,13 +180,7 @@ else
 	BOOTFILE="initramfs-generic$image_suffix"
 fi
 
-gunzip < "${TMPFILE}" > "${TMPFILE2}"
-rm "${TMPFILE}"
-
-compress_file "${TMPFILE2}" "${bootdir}/${BOOTFILE}" "$compression"
-
+compress_file "${TMPFILE}" "${bootdir}/${BOOTFILE}" "$compression"
 add_microcode "${bootdir}/${BOOTFILE}" "${microcode}"
 
 ln -svf ${BOOTFILE} "${bootdir}/initramfs"
-
-rm -rf ${TMPDIR}
