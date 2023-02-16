@@ -33,6 +33,7 @@ TMPFILE=$(mktemp)
 hooks=
 compression=
 microcode=
+firmware=
 modules_version=
 image_suffix=
 
@@ -90,6 +91,9 @@ while read -r line ; do
 			microcode=\"*\")
 				microcode="$(echo $line | sed -e 's|^microcode="||' -e 's|\"$||')"
 				;;
+			firmware=\"*\")
+				firmware="$(echo $line | sed -e 's|^firmware="||' -e 's|\"$||')"
+				;;
 		esac
 	fi
 done < "${configdir}/dt-init-scripts.conf"
@@ -118,16 +122,31 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	hook_install_${basehook} "${TMPDIR}" "${hookopts}"
 done
 
+# now install kernel modules
 if [ -n "$modules_version" ] ; then
 	mkdir -p "${TMPDIR}"/lib/modules
 
 	if [ "$modules_version" = "*" ] ; then
 		echo copying all kernel modules
-		cp -ar /lib/modules/* "${TMPDIR}"/lib/modules/
+		cp -a /lib/modules/* "${TMPDIR}"/lib/modules/
 	else
 		echo copying kernel modules for kernel "$modules_version"
-		cp -ar "/lib/modules/$modules_version" "${TMPDIR}"/lib/modules/
+		cp -a "/lib/modules/$modules_version" "${TMPDIR}"/lib/modules/
 	fi
+fi
+
+# install extra firmware
+if [ -n "$firmware" ] ; then
+	echo copying firmware files
+
+	for firmwarefile in $(eval "echo ${firmware}") ; do
+		firmwarefullfile="$(readlink -e "/lib/firmware/$firmwarefile")"
+
+		if [[ "$firmwarefullfile" == /lib/firmware/* ]] ; then
+			mkdir -p "${TMPDIR}/$(dirname "$firmwarefullfile")"
+			cp -a "$firmwarefullfile" "${TMPDIR}/$firmwarefullfile"
+		fi
+	done
 fi
 
 # and now write options
