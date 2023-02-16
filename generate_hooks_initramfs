@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]] ; do
 		-c|--current-kernel)
 			if [ "$modules_version" != "*" ] ; then
 				modules_version="$(uname -r)"
-				image_suffix="-$(uname -r)"
+				image_suffix="$(uname -r)"
 			fi
 
 			shift
@@ -52,7 +52,7 @@ while [[ $# -gt 0 ]] ; do
 				if [[ "$2" != */* ]] ; then
 					if [[ "$(readlink -e "/lib/modules/$2")" == /lib/modules/* ]] ; then
 						modules_version="$2"
-						image_suffix="-$2"
+						image_suffix="$2"
 					fi
 				fi
 			fi
@@ -193,10 +193,12 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 	fi
 done
 
-if [ ${has_hook_plymouth} -eq 1 ] ; then
-	BOOTFILE="initramfs-plymouth$image_suffix"
+if [ -n "$image_suffix" ] ; then
+	BOOTFILE="initramfs-${image_suffix}.img"
+elif [ ${has_hook_plymouth} -eq 1 ] ; then
+	BOOTFILE="initramfs-plymouth.img"
 else
-	BOOTFILE="initramfs-generic$image_suffix"
+	BOOTFILE="initramfs-generic.img"
 fi
 
 compress_file "${TMPFILE}" "${bootdir}/${BOOTFILE}" "$compression"
