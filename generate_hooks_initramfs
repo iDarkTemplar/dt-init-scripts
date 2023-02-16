@@ -34,6 +34,50 @@ TMPFILE2=$(mktemp)
 hooks=
 compression=
 microcode=
+modules_version=
+image_suffix=
+
+while [[ $# -gt 0 ]] ; do
+	case $1 in
+		-c|--current-kernel)
+			if [ "$modules_version" != "*" ] ; then
+				modules_version="$(uname -r)"
+				image_suffix="-$(uname -r)"
+			fi
+
+			shift
+			;;
+		-k|--kernel)
+			if [ "$modules_version" != "*" ] ; then
+				if [[ "$2" != */* ]] ; then
+					if [[ "$(readlink -e "/lib/modules/$2")" == /lib/modules/* ]] ; then
+						modules_version="$2"
+						image_suffix="-$2"
+					fi
+				fi
+			fi
+
+			shift
+			shift
+			;;
+		-a|--all-kernels)
+			modules_version='*'
+			image_suffix=
+			shift
+			;;
+		*)
+			echo "$0 - kernel initramfs generator" 1>&2
+			echo "" 1>&2
+			echo "Options:" 1>&2
+			echo "	--help (-h)            - this help message" 1>&2
+			echo "	--current-kernel (-c)  - add kernel modules for current kernel" 1>&2
+			echo "	--kernel \$version (-k) - add kernel modules for specified kernel version" 1>&2
+			echo "	--all-kernels (-a)     - add kernel modules for all kernels" 1>&2
+
+			exit 1
+			;;
+	esac
+done
 
 while read -r line ; do
 	if [ ! -z "$line" ] ; then
@@ -74,6 +118,18 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 
 	hook_install_${basehook} "${TMPDIR}" "${hookopts}"
 done
+
+if [ -n "$modules_version" ] ; then
+	mkdir -p "${TMPDIR}"/lib/modules
+
+	if [ "$modules_version" = "*" ] ; then
+		echo copying all kernel modules
+		cp -ar /lib/modules/* "${TMPDIR}"/lib/modules/
+	else
+		echo copying kernel modules for kernel "$modules_version"
+		cp -ar "/lib/modules/$modules_version" "${TMPDIR}"/lib/modules/
+	fi
+fi
 
 # and now write options
 hookoptsline=
@@ -119,9 +175,9 @@ for hook in $(echo $hooks | sed -e 's|,| |g') ; do
 done
 
 if [ ${has_hook_plymouth} -eq 1 ] ; then
-	BOOTFILE=initramfs-plymouth
+	BOOTFILE="initramfs-plymouth$image_suffix"
 else
-	BOOTFILE=initramfs-generic
+	BOOTFILE="initramfs-generic$image_suffix"
 fi
 
 gunzip < "${TMPFILE}" > "${TMPFILE2}"

@@ -69,7 +69,9 @@ common_hook_install_base() {
 	make_symlink "busybox" "${basedir}/bin/grep"
 	make_symlink "busybox" "${basedir}/bin/ln"
 	make_symlink "busybox" "${basedir}/bin/ls"
+	make_symlink "busybox" "${basedir}/bin/lsmod"
 	make_symlink "busybox" "${basedir}/bin/mkdir"
+	make_symlink "busybox" "${basedir}/bin/modinfo"
 	make_symlink "busybox" "${basedir}/bin/mount"
 	make_symlink "busybox" "${basedir}/bin/mv"
 	make_symlink "busybox" "${basedir}/bin/pivot_chroot"
@@ -87,8 +89,10 @@ common_hook_install_base() {
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/strings"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/wc"
 	make_symlink "/bin/busybox" "${basedir}/usr/bin/["
+	make_symlink "/bin/busybox" "${basedir}/sbin/insmod"
 	make_symlink "/bin/busybox" "${basedir}/sbin/mdev"
 	make_symlink "/bin/busybox" "${basedir}/sbin/modprobe"
+	make_symlink "/bin/busybox" "${basedir}/sbin/rmmod"
 
 	# copy mdev config and helpers
 	copy "/etc/mdev.conf" "${basedir}/etc/mdev.conf" "${basedir}"
