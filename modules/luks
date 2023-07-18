@@ -86,12 +86,6 @@ common_hook_install_luks() {
 	mkdir -p "${basedir}/etc/hooks"
 
 	copy_executable "/sbin/cryptsetup" "${basedir}/sbin/cryptsetup" "${basedir}"
-	copy_executable "/usr/bin/gpg" "${basedir}/usr/bin/gpg" "${basedir}"
-	copy_executable "/usr/bin/gpg-agent" "${basedir}/usr/bin/gpg-agent" "${basedir}"
-	copy_executable "/usr/bin/pinentry-curses" "${basedir}/usr/bin/pinentry-curses" "${basedir}"
-	copy_executable "/usr/bin/shred" "${basedir}/usr/bin/shred" "${basedir}"
-
-	make_symlink "pinentry-curses" "${basedir}/usr/bin/pinentry"
 
 	copy_executable "${sharedir}/hooks/luks" "${basedir}/etc/hooks/luks" "${basedir}"
 
@@ -106,6 +100,13 @@ hook_install_luks() {
 	local keysdir="/boot"
 
 	common_hook_install_luks $basedir $params
+
+	copy_executable "/usr/bin/gpg" "${basedir}/usr/bin/gpg" "${basedir}"
+	copy_executable "/usr/bin/gpg-agent" "${basedir}/usr/bin/gpg-agent" "${basedir}"
+	copy_executable "/usr/bin/pinentry-curses" "${basedir}/usr/bin/pinentry-curses" "${basedir}"
+	copy_executable "/usr/bin/shred" "${basedir}/usr/bin/shred" "${basedir}"
+
+	make_symlink "pinentry-curses" "${basedir}/usr/bin/pinentry"
 
 	for param in $(echo $params | sed -e 's|:| |g') ; do
 		case $param in

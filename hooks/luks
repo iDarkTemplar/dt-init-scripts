@@ -103,7 +103,6 @@ hook_run_luks() {
 
 	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
 		if [ -e "/root/$(eval echo \$luks_mtab_key_files_$i)" ] ; then
-
 			if [ -x /usr/bin/shred ] ; then
 				/usr/bin/shred -u "/root/$(eval echo \$luks_mtab_key_files_$i)"
 			else
@@ -113,6 +112,7 @@ hook_run_luks() {
 	done
 
 	if [ "$decrypted_everything" -ne 1 ] ; then
+		echo "Failed to decrypt luks" 1>&2
 		return 1
 	fi
 
