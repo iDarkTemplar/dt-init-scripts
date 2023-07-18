@@ -44,4 +44,6 @@ hook_install_rngd() {
 	copy_executable "/usr/sbin/rngd" "${basedir}/usr/sbin/rngd" "${basedir}"
 
 	copy_executable "${sharedir}/hooks/rngd" "${basedir}/etc/hooks/rngd" "${basedir}"
+
+	return 0
 }

@@ -134,6 +134,8 @@ hook_install_base() {
 	copy_executable "${sharedir}/helpers/linuxrc-init-finish" "${basedir}/sbin/linuxrc-init-finish" "${basedir}"
 	copy_executable "${sharedir}/helpers/linuxrc-runhooks" "${basedir}/sbin/linuxrc-runhooks" "${basedir}"
 	copy_executable "${sharedir}/helpers/linuxrc" "${basedir}/init" "${basedir}"
+
+	return 0
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
@@ -146,4 +148,6 @@ hook_shutdown_install_base() {
 	mkdir -p "${basedir}/oldroot"
 
 	copy_executable "${sharedir}/helpers/shutdown-newroot-run" "${basedir}/bin/shutdown-newroot-run" "${basedir}"
+
+	return 0
 }

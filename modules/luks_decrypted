@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+# Copyright (C) 2017-2023 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
 # This file is part of DT init scripts.
 #
@@ -28,7 +28,7 @@
 #	optional parameter, default value is "/boot"
 
 # $1 = parameters (optional)
-hook_check_params_luks() {
+hook_check_params_luks_decrypted() {
 	local params=$1
 	local configfile=
 	local keysdir="/boot"
@@ -45,11 +45,11 @@ hook_check_params_luks() {
 		esac
 	done
 
-	[ -f "${configfile}" ] || die "Hook \"luks\": configfile option doesn't point to existing file!"
-	[ -d "${keysdir}" ] || die "Hook \"luks\": keysdir option doesn't point to existing file!"
+	[ -f "${configfile}" ] || die "Hook \"luks_decrypted\": configfile option doesn't point to existing file!"
+	[ -d "${keysdir}" ] || die "Hook \"luks_decrypted\": keysdir option doesn't point to existing file!"
 }
 
-hook_shutdown_check_params_luks() {
+hook_shutdown_check_params_luks_decrypted() {
 	local params=$1
 	local configfile=
 
@@ -62,11 +62,11 @@ hook_shutdown_check_params_luks() {
 		esac
 	done
 
-	[ -f "${configfile}" ] || die "Hook \"luks\": configfile option doesn't point to existing file!"
+	[ -f "${configfile}" ] || die "Hook \"luks_decrypted\": configfile option doesn't point to existing file!"
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
-common_hook_install_luks() {
+common_hook_install_luks_decrypted() {
 	local basedir=$1
 	local params=$2
 	local configfile=
@@ -84,29 +84,23 @@ common_hook_install_luks() {
 	mkdir -p "${basedir}/sbin"
 	mkdir -p "${basedir}/usr/sbin"
 	mkdir -p "${basedir}/etc/hooks"
+	mkdir -p "${basedir}/root"
 
 	copy_executable "/sbin/cryptsetup" "${basedir}/sbin/cryptsetup" "${basedir}"
 
-	copy_executable "${sharedir}/hooks/luks" "${basedir}/etc/hooks/luks" "${basedir}"
+	copy_executable "${sharedir}/hooks/luks_decrypted" "${basedir}/etc/hooks/luks_decrypted" "${basedir}"
 
 	copy "${configfile}" "${basedir}/${configfile}" "${basedir}"
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
-hook_install_luks() {
+hook_install_luks_decrypted() {
 	local basedir=$1
 	local params=$2
 	local configfile=
 	local keysdir="/boot"
 
-	common_hook_install_luks $basedir $params
-
-	copy_executable "/usr/bin/gpg" "${basedir}/usr/bin/gpg" "${basedir}"
-	copy_executable "/usr/bin/gpg-agent" "${basedir}/usr/bin/gpg-agent" "${basedir}"
-	copy_executable "/usr/bin/pinentry-curses" "${basedir}/usr/bin/pinentry-curses" "${basedir}"
-	copy_executable "/usr/bin/shred" "${basedir}/usr/bin/shred" "${basedir}"
-
-	make_symlink "pinentry-curses" "${basedir}/usr/bin/pinentry"
+	common_hook_install_luks_decrypted $basedir $params
 
 	for param in $(echo $params | sed -e 's|:| |g') ; do
 		case $param in
@@ -120,28 +114,32 @@ hook_install_luks() {
 		esac
 	done
 
-	. "${sharedir}/hooks/luks"
-	helper_luks_read_mtab "${configfile}"
+	. "${sharedir}/hooks/luks_decrypted"
+	helper_luks_decrypted_read_mtab "${configfile}"
 
-	for i in $(seq 0 $(expr ${luks_mtab_items_count} - 1)) ; do
-		copy "${keysdir}/$(eval echo \$luks_mtab_key_files_${i}).gpg" "${basedir}/root/$(eval echo \$luks_mtab_key_files_${i}).gpg" "${basedir}"
+	for i in $(seq 0 $(expr ${luks_decrypted_mtab_items_count} - 1)) ; do
+		/usr/bin/gpg --quiet --output "${basedir}/root/$(eval echo \$luks_decrypted_mtab_key_files_${i})" --decrypt "${keysdir}/$(eval echo \$luks_decrypted_mtab_key_files_${i}).gpg" 2>/dev/null
+		if [ ! -f "${basedir}/root/$(eval echo \$luks_decrypted_mtab_key_files_${i})" ] ; then
+			echo "Failed to decrypt luks" 1>&2
+			return 1
+		fi
 	done
 
 	return 0
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
-hook_shutdown_install_luks() {
+hook_shutdown_install_luks_decrypted() {
 	local basedir=$1
 	local params=$2
 
-	common_hook_install_luks $basedir $params
+	common_hook_install_luks_decrypted $basedir $params
 
 	return 0
 }
 
 # $1 = parameters (optional)
-hook_write_params_luks() {
+hook_write_params_luks_decrypted() {
 	local params=$1
 	local paramsout=
 

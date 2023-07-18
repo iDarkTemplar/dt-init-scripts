@@ -60,4 +60,6 @@ hook_install_suspend() {
 	fi
 
 	copy_executable "${sharedir}/hooks/suspend" "${basedir}/etc/hooks/suspend" "${basedir}"
+
+	return 0
 }

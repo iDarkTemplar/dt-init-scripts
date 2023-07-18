@@ -90,6 +90,8 @@ hook_install_dm() {
 	local configfile=
 
 	common_hook_install_dm $basedir $params
+
+	return 0
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
@@ -98,4 +100,6 @@ hook_shutdown_install_dm() {
 	local params=$2
 
 	common_hook_install_dm $basedir $params
+
+	return 0
 }

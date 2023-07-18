@@ -89,6 +89,8 @@ hook_install_raid() {
 	local params=$2
 
 	common_hook_install_raid $basedir $params
+
+	return 0
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
@@ -97,4 +99,6 @@ hook_shutdown_install_raid() {
 	local params=$2
 
 	common_hook_install_raid $basedir $params
+
+	return 0
 }
