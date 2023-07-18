@@ -86,7 +86,7 @@ hook_install_module() {
 }
 
 # $1 = initramfs root, $2 - parameters (optional)
-hook_shutdown_install_luks() {
+hook_shutdown_install_module() {
 	local basedir=$1
 	local params=$2
 
