@@ -48,16 +48,16 @@ copy()
 
 	cp -a "$from" "$where"
 	if [ -L "$from" ] ; then
-		local link="$(readlink $from)"
+		local link="$(readlink "$from")"
 		if [[ "$link" != /* ]] ; then
-			link="$(dirname $from)/$link"
+			link="$(dirname "$from")/$link"
 		fi
 
 		copy "$link" "${rootdir}/$link" "$rootdir"
 	elif [ -f "$from" ] ; then
 		lddtree -l "$from" | tail -n +2 | while read lib ; do
 			if [ ! -e "${rootdir}/$lib" ] ; then
-				[ -e "${rootdir}/$(dirname $lib)" ] || mkdir -p "${rootdir}/$(dirname $lib)"
+				[ -e "${rootdir}/$(dirname "$lib")" ] || mkdir -p "${rootdir}/$(dirname "$lib")"
 				copy "$lib" "${rootdir}/$lib" "${rootdir}"
 			fi
 		done
@@ -73,7 +73,7 @@ make_executable()
 		verbose=-v
 	fi
 
-	chmod $verbose 755 "$(readlink -e $what)"
+	chmod $verbose 755 "$(readlink -e "$what")"
 }
 
 copy_executable()
@@ -129,29 +129,29 @@ add_microcode()
 	local microcode_files_intel="/lib/firmware/intel-ucode/*"
 	local microcode_files_amd="/lib/firmware/amd-ucode/*.bin"
 
-	local microcodedir=$(mktemp -d)
+	local microcodedir="$(mktemp -d)"
 	mkdir -p "${microcodedir}/${microcodedst}"
 
 	case "${microcode_type}" in
 		all)
-			if stat ${microcode_files_intel} &>/dev/null ; then
-				cat ${microcode_files_intel} > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
+			if stat "${microcode_files_intel}" &>/dev/null ; then
+				cat "${microcode_files_intel}" > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
 				has_microcode=1
 			fi
-			if stat ${microcode_files_amd} &>/dev/null ; then
-				cat ${microcode_files_amd} > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
+			if stat "${microcode_files_amd}" &>/dev/null ; then
+				cat "${microcode_files_amd}" > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
 				has_microcode=1
 			fi
 			;;
 		intel)
-			if stat ${microcode_files_intel} &>/dev/null ; then
-				cat ${microcode_files_intel} > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
+			if stat "${microcode_files_intel}" &>/dev/null ; then
+				cat "${microcode_files_intel}" > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
 				has_microcode=1
 			fi
 			;;
 		amd)
-			if stat ${microcode_files_amd} &>/dev/null ; then
-				cat ${microcode_files_amd} > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
+			if stat "${microcode_files_amd}" &>/dev/null ; then
+				cat "${microcode_files_amd}" > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
 				has_microcode=1
 			fi
 			;;
@@ -160,8 +160,8 @@ add_microcode()
 	esac
 
 	if [ ${has_microcode} -eq 1 ] ; then
-		local microcodetmpfile=$(mktemp)
-		local oldfile=$(mktemp)
+		local microcodetmpfile="$(mktemp)"
+		local oldfile="$(mktemp)"
 
 		pushd "${microcodedir}" &>/dev/null
 		find . | cpio -o -H newc > "${microcodetmpfile}"
@@ -173,7 +173,7 @@ add_microcode()
 		rm "${microcodetmpfile}" "${oldfile}"
 	fi
 
-	rm -rf ${microcodedir}
+	rm -rf "${microcodedir}"
 }
 
 helper_copy_verbose=0

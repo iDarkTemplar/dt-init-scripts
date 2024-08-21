@@ -80,7 +80,7 @@ while [[ $# -gt 0 ]] ; do
 done
 
 while read -r line ; do
-	if [ ! -z "$line" ] ; then
+	if [ -n "$line" ] ; then
 		case $line in
 			initrd_hooks=\"*\")
 				hooks="$(echo $line | sed -e 's|^initrd_hooks="||' -e 's|\"$||')"
@@ -181,11 +181,11 @@ done
 mkdir -p "${TMPDIR}/${configdir}"
 echo initrd_hooks=\"${hookoptsline}\" > "${TMPDIR}/${configdir}/dt-init-scripts.conf"
 
-pushd ${TMPDIR} &>/dev/null
-find . -print | cpio -o -H newc > ${TMPFILE}
+pushd "${TMPDIR}" &>/dev/null
+find . -print | cpio -o -H newc > "${TMPFILE}"
 popd &>/dev/null
-chmod 644 ${TMPFILE}
-rm -rf ${TMPDIR}
+chmod 644 "${TMPFILE}"
+rm -rf "${TMPDIR}"
 
 has_hook_plymouth=0
 
@@ -209,4 +209,4 @@ fi
 compress_file "${TMPFILE}" "${bootdir}/${BOOTFILE}" "$compression"
 add_microcode "${bootdir}/${BOOTFILE}" "${microcode}"
 
-ln -svf ${BOOTFILE} "${bootdir}/initramfs"
+ln -svf "${BOOTFILE}" "${bootdir}/initramfs"

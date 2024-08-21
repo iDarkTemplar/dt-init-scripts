@@ -44,7 +44,7 @@ move_mounts_to_chroot() {
 
 hook_get() {
 	while read -r line ; do
-		if [ ! -z "$line" ] ; then
+		if [ -n "$line" ] ; then
 			case $line in
 				initrd_hooks=\"*\")
 					hooks="$(echo $line | sed -e 's|^initrd_hooks="||' -e 's|\"$||')"
@@ -140,7 +140,7 @@ hook_deinit() {
 
 hook_get_shutdown() {
 	while read -r line ; do
-		if [ ! -z "$line" ] ; then
+		if [ -n "$line" ] ; then
 			case $line in
 				shutdown_hooks=\"*\")
 					hooks="$(echo $line | sed -e 's|^shutdown_hooks="||' -e 's|\"$||')"
