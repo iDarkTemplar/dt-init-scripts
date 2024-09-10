@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2017 i.Dark_Templar <darktemplar@dark-templar-archives.net>
+# Copyright (C) 2017-2024 i.Dark_Templar <darktemplar@dark-templar-archives.net>
 #
 # This file is part of DT init scripts.
 #
@@ -134,24 +134,24 @@ add_microcode()
 
 	case "${microcode_type}" in
 		all)
-			if stat "${microcode_files_intel}" &>/dev/null ; then
-				cat "${microcode_files_intel}" > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
+			if stat ${microcode_files_intel} &>/dev/null ; then
+				cat ${microcode_files_intel} > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
 				has_microcode=1
 			fi
-			if stat "${microcode_files_amd}" &>/dev/null ; then
-				cat "${microcode_files_amd}" > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
+			if stat ${microcode_files_amd} &>/dev/null ; then
+				cat ${microcode_files_amd} > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
 				has_microcode=1
 			fi
 			;;
 		intel)
-			if stat "${microcode_files_intel}" &>/dev/null ; then
-				cat "${microcode_files_intel}" > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
+			if stat ${microcode_files_intel} &>/dev/null ; then
+				cat ${microcode_files_intel} > "${microcodedir}/${microcodedst}/GenuineIntel.bin"
 				has_microcode=1
 			fi
 			;;
 		amd)
-			if stat "${microcode_files_amd}" &>/dev/null ; then
-				cat "${microcode_files_amd}" > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
+			if stat ${microcode_files_amd} &>/dev/null ; then
+				cat ${microcode_files_amd} > "${microcodedir}/${microcodedst}/AuthenticAMD.bin"
 				has_microcode=1
 			fi
 			;;
